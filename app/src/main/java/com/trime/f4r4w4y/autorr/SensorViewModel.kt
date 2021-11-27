@@ -74,7 +74,7 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
         viewModelScope.launch {
             registerSensors()
             Log.d("SENSOR_R", "counting ...")
-            val sensorData = getSensorData()
+            val sensorData = getSensorData(6000) // Get and evaluate 1 minute data
             val (timeArr, accX, accY, accZ, gyrX, gyrY, gyrZ) = sensorData
             Log.d("SENSOR_R", "sensor_data: ${sensorData.contentDeepToString()}")
             unregisterSensors()
@@ -102,9 +102,9 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
         }
     }
 
-    private suspend fun getSensorData(): Array<FloatArray> {
+    private suspend fun getSensorData(dataSize: Int): Array<FloatArray> {
         delay(1000) // Weirdly needed, to let the sensor register itself first
-        val time = System.currentTimeMillis()
+        var time = 0L
         var lastSeconds = String.format("%.2f", -1F).toFloat()
 
         var timeArr: FloatArray = floatArrayOf()
@@ -115,8 +115,10 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
         var gyrY: FloatArray = floatArrayOf()
         var gyrZ: FloatArray = floatArrayOf()
 
-        while (accX.size != 20) {
+        while (accX.size != dataSize) {
             delay(1) // Weirdly needed, to let the sensor update the value first
+            if (time == 0L) time = System.currentTimeMillis()
+
             val seconds =
                 String.format("%.2f", (System.currentTimeMillis() - time) / 1000F).toFloat()
             if (!"%.2f".format(lastSeconds).contentEquals("%.2f".format(seconds))) {
