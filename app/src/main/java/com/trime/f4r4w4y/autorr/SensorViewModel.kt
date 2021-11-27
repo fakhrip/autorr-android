@@ -24,7 +24,7 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
     private var accValue = FloatArray(3) { 0F }
     private var gyrValue = FloatArray(3) { 0F }
 
-    fun registerSensors() {
+    private fun registerSensors() {
         sensorManager =
             getApplication<Application>().getSystemService(Context.SENSOR_SERVICE) as SensorManager
 
@@ -88,7 +88,7 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
             rhinoInterpreter.evalScript(jsCode, "javascriptEvaluation")
 
             // Run the corresponding function
-            val result: Double = rhinoInterpreter.callJsFunction(
+            val result: Double? = rhinoInterpreter.callJsFunction(
                 funcName,
                 timeArr,
                 accX,

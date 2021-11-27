@@ -32,7 +32,7 @@ class MainActivity : AppCompatActivity() {
         sViewModel.unregisterSensors()
     }
 
-    fun loadAssetFile(inFile: String): String {
+    private fun loadAssetFile(inFile: String): String {
         var tContents = ""
 
         try {

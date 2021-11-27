@@ -1,57 +1,53 @@
-package com.trime.f4r4w4y.autorr;
+package com.trime.f4r4w4y.autorr
 
-import android.util.Log;
+import android.util.Log
+import org.mozilla.javascript.*
+import org.mozilla.javascript.Function
 
-import org.mozilla.javascript.Context;
-import org.mozilla.javascript.Function;
-import org.mozilla.javascript.Scriptable;
+class RhinoInterpreter {
+    private lateinit var rhino: Context
+    private lateinit var scope: Scriptable
 
-public class RhinoInterpreter {
-    private Context rhino;
-    private Scriptable scope;
+    fun initialize() {
+        rhino = Context.enter()
+        rhino.languageVersion = Context.VERSION_ES6
+        rhino.optimizationLevel = -1
+        rhino.wrapFactory.isJavaPrimitiveWrap = false
 
-    public RhinoInterpreter() {
-        initialize();
+        scope = rhino.initStandardObjects()
     }
 
-    public void initialize() {
-        rhino = Context.enter();
-        rhino.setLanguageVersion(Context.VERSION_ES6);
-        rhino.setOptimizationLevel(-1);
-
-        scope = rhino.initStandardObjects();
-        rhino.getWrapFactory().setJavaPrimitiveWrap(false);
+    fun loadLib(jscode: String?) {
+        evalScript(jscode, "javascriptLibrary")
     }
 
-    public void loadLib(String jscode) {
-        evalScript(jscode, "javascriptLibrary");
-    }
-
-    public void evalScript(String jscode, String scriptName) {
+    fun evalScript(jscode: String?, scriptName: String?) {
         try {
-            Object result = rhino.evaluateString(scope, jscode, scriptName, 1, null);
-            Log.d("JS_RESULT", result.toString());
-        } catch (org.mozilla.javascript.EvaluatorException e) {
-            Log.e("JS_ERROR_EVALUATOR", e.getMessage());
-        } catch (org.mozilla.javascript.EcmaError e) {
-            Log.e("JS_ERROR_ECMA", e.getMessage());
-        } catch (Exception e) {
-            Log.e("JS_ERROR", e.getMessage());
+            val result = rhino.evaluateString(scope, jscode, scriptName, 1, null)
+            Log.d("JS_RESULT", result.toString())
+        } catch (e: EvaluatorException) {
+            Log.e("JS_ERROR_EVALUATOR", e.message!!)
+        } catch (e: EcmaError) {
+            Log.e("JS_ERROR_ECMA", e.message!!)
+        } catch (e: Exception) {
+            Log.e("JS_ERROR", e.message!!)
         }
     }
 
-    public Object getJsFunction(String name) {
-        return scope.get(name, scope);
+    private fun getJsFunction(name: String?): Any {
+        return scope[name, scope]
     }
 
-    @SuppressWarnings("unchecked")
-    public <T> T callJsFunction(String name, Object... params) {
-        Object obj = getJsFunction(name);
-        if (obj instanceof Function) {
-            Function function = (Function) obj;
-            return (T) function.call(rhino, scope, scope, params);
+    @Suppress("UNCHECKED_CAST")
+    fun <T> callJsFunction(name: String, vararg params: Any?): T? {
+        val obj = getJsFunction(name)
+        if (obj is Function) {
+            return obj.call(rhino, scope, scope, params) as T
         }
+        return null
+    }
 
-        return null;
+    init {
+        initialize()
     }
 }
