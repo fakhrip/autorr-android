@@ -65,13 +65,40 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
         sensorManager.unregisterListener(this)
     }
 
-    fun getAndEvaluateData() {
+    fun getAndEvaluateData(
+        rhinoInterpreter: RhinoInterpreter,
+        jsCode: String,
+        funcName: String,
+        libs: Array<String>
+    ) {
         viewModelScope.launch {
             registerSensors()
             Log.d("SENSOR_R", "counting ...")
-            val results = getSensorData()
-            Log.d("SENSOR_R", "result: ${results.contentDeepToString()}")
+            val sensorData = getSensorData()
+            val (timeArr, accX, accY, accZ, gyrX, gyrY, gyrZ) = sensorData
+            Log.d("SENSOR_R", "sensor_data: ${sensorData.contentDeepToString()}")
             unregisterSensors()
+
+            // Load all the libraries first
+            libs.forEach {
+                rhinoInterpreter.loadLib(it)
+            }
+
+            // Load the main script
+            rhinoInterpreter.evalScript(jsCode, "javascriptEvaluation")
+
+            // Run the corresponding function
+            val result: Double = rhinoInterpreter.callJsFunction(
+                funcName,
+                timeArr,
+                accX,
+                accY,
+                accZ,
+                gyrX,
+                gyrY,
+                gyrZ
+            )
+            Log.d("SENSOR_R", "result: $result")
         }
     }
 
@@ -136,4 +163,12 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
     override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) {
         // Do nothing
     }
+}
+
+private operator fun <T> Array<T>.component6(): T {
+    return get(5)
+}
+
+private operator fun <T> Array<T>.component7(): T {
+    return get(6)
 }
