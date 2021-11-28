@@ -80,17 +80,20 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
         libs: Array<String>,
         loadingBar: LinearProgressIndicator?,
         progressText: TextView?,
-        finishCallback: () -> Unit
+        loadingText: TextView?,
+        finishCallback: (result: String) -> Unit
     ) {
         fUtil = FileUtil(getApplication<Application>().applicationContext)
         job = viewModelScope.launch {
             registerSensors()
-            val sensorData = getSensorData(6000, loadingBar) // Get and evaluate 1 minute data
+            val sensorData = getSensorData(
+                6000,
+                loadingBar,
+                progressText,
+                loadingText
+            ) // Get and evaluate 1 minute data
             val (timeArr, accX, accY, accZ, gyrX, gyrY, gyrZ) = sensorData
             unregisterSensors()
-
-            loadingBar?.progress = 100
-            progressText?.setText(R.string.wait2_text)
 
             // Load all the libraries first
             libs.forEach {
@@ -112,8 +115,7 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
                 gyrZ
             )
 
-            progressText?.text = "${R.string.result_text} ${result?.joinToString()}"
-            finishCallback()
+            result?.joinToString()?.let { finishCallback(it) }
         }
     }
 
@@ -124,9 +126,12 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
         }
     }
 
+    @SuppressLint("SetTextI18n")
     private suspend fun getSensorData(
         dataSize: Int,
-        loadingBar: LinearProgressIndicator?
+        loadingBar: LinearProgressIndicator?,
+        progressText: TextView?,
+        loadingText: TextView?
     ): Array<FloatArray> {
         delay(1000) // Weirdly needed, to let the sensor register itself first
         var time = 0L
@@ -147,8 +152,15 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
             val seconds =
                 String.format("%.2f", (System.currentTimeMillis() - time) / 1000F).toFloat()
 
-            loadingBar?.progress =
-                ((timeArr.size.toDouble() / dataSize.toDouble()) * 100).roundToInt()
+            val progress = ((timeArr.size.toDouble() / dataSize.toDouble()) * 100).roundToInt()
+            loadingText?.text = "${progress}/100"
+            loadingBar?.progress = progress
+
+            // Dirty trick because apparently it didn't work if you put it
+            // in other place without rendering it multiple times ¯\_(ツ)_/¯
+            if (progress > 98)
+                progressText?.text =
+                    "Calculating respiration rate from acquired data, please wait …"
 
             // Reset calculation if first two frequencies is not align correctly
             if (timeArr.size > 1 && !"%.2f".format(timeArr[1] - timeArr[0]).contentEquals("0.01")) {

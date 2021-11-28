@@ -5,7 +5,9 @@
     <string name="finish">Finish</string>
     <string name="stop">Stop</string>
     <string name="placeholder_text">Click the start button to start the data acquisition process and get the respiration rate value</string>
-    <string name="wait_text">Wait for the acquisition data to finished</string>
-    <string name="wait2_text">Calculating respiration rate from acquired data, please wait …</string>
+    <string name="wait_text">Wait for the data acquisition to finished</string>
+    <string name="wait2_text">Calculating respiration rate from acquired data, please wait … \n\n(DO NOT click the stop button)</string>
     <string name="result_text">Predicted respiration rate value:</string>
+    <string name="_0_100">0/100</string>
+    <string name="_100_100">100/100</string>
 </resources>
