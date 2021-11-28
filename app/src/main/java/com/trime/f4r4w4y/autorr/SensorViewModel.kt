@@ -7,15 +7,17 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.media.AudioManager
+import android.media.ToneGenerator
+import android.os.Handler
+import android.os.Looper
 import android.view.View
 import android.widget.TextView
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.google.android.material.snackbar.Snackbar
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import org.mozilla.javascript.NativeArray
 import kotlin.math.roundToInt
 
@@ -74,7 +76,6 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
 
     @SuppressLint("SetTextI18n")
     fun getAndEvaluateData(
-        rhinoInterpreter: RhinoInterpreter,
         jsCode: String,
         funcName: String,
         libs: Array<String>,
@@ -86,35 +87,20 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
         fUtil = FileUtil(getApplication<Application>().applicationContext)
         job = viewModelScope.launch {
             registerSensors()
+
+            // Get sensor data for 1 minute
             val sensorData = getSensorData(
                 6000,
                 loadingBar,
                 progressText,
                 loadingText
-            ) // Get and evaluate 1 minute data
-            val (timeArr, accX, accY, accZ, gyrX, gyrY, gyrZ) = sensorData
-            unregisterSensors()
-
-            // Load all the libraries first
-            libs.forEach {
-                rhinoInterpreter.loadLib(it)
-            }
-
-            // Load the main script
-            rhinoInterpreter.evalScript(jsCode, "javascriptEvaluation")
-
-            // Run the corresponding function
-            val result: NativeArray? = rhinoInterpreter.callJsFunction(
-                funcName,
-                timeArr,
-                accX,
-                accY,
-                accZ,
-                gyrX,
-                gyrY,
-                gyrZ
             )
 
+            // Unregister sensor to not waste any batteries
+            unregisterSensors()
+
+            // Calculate respiration rate from acquired data and return the result
+            val result: NativeArray? = calculateData(jsCode, funcName, libs, sensorData)
             result?.joinToString(",\n")?.let { finishCallback(it) }
         }
     }
@@ -124,6 +110,41 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
             job.cancel()
             unregisterSensors()
         }
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private suspend fun <T> calculateData(
+        jsCode: String,
+        funcName: String,
+        libs: Array<String>,
+        sensorData: Array<FloatArray>
+    ): T? = withContext(Dispatchers.Default) {
+        delay(50) // Weirdly needed, to let the suspend works ?
+        val (timeArr, accX, accY, accZ, gyrX, gyrY, gyrZ) = sensorData
+
+        val rhinoInterpreter = RhinoInterpreter()
+
+        // Load all the libraries first
+        libs.forEach {
+            rhinoInterpreter.loadLib(it)
+        }
+
+        // Load the main script
+        rhinoInterpreter.evalScript(jsCode, "javascriptEvaluation")
+
+        // Run the corresponding function
+        val result: Any? = rhinoInterpreter.callJsFunction(
+            funcName,
+            timeArr,
+            accX,
+            accY,
+            accZ,
+            gyrX,
+            gyrY,
+            gyrZ
+        )
+
+        return@withContext result as T
     }
 
     @SuppressLint("SetTextI18n")
@@ -162,7 +183,7 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
                 progressText?.text =
                     getApplication<Application>().applicationContext.getString(R.string.wait2_text)
 
-            // Reset calculation if first two frequencies is not align correctly
+            // Reset calculation if first two frequencies is not aligned correctly
             if (timeArr.size > 1 && !"%.2f".format(timeArr[1] - timeArr[0]).contentEquals("0.01")) {
                 timeArr = floatArrayOf()
                 accX = floatArrayOf()
@@ -186,7 +207,18 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
             }
         }
 
+        playSound()
+        loadingBar?.isIndeterminate = true
+
         return arrayOf(timeArr, accX, accY, accZ, gyrX, gyrY, gyrZ)
+    }
+
+    private fun playSound(duration: Int = 300) {
+        val toneG = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
+        toneG.startTone(ToneGenerator.TONE_DTMF_S, duration)
+        Handler(Looper.getMainLooper()).postDelayed({
+            toneG.release()
+        }, (duration + 50).toLong())
     }
 
     override fun onSensorChanged(event: SensorEvent) {

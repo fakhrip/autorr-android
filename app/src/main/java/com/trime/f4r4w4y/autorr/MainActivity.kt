@@ -10,7 +10,6 @@ import com.google.android.material.progressindicator.LinearProgressIndicator
 
 class MainActivity : AppCompatActivity() {
     private lateinit var sViewModel: SensorViewModel
-    private lateinit var rInterpreter: RhinoInterpreter
     private lateinit var fUtil: FileUtil
     private var progressText: TextView? = null
     private var loadingText: TextView? = null
@@ -26,7 +25,6 @@ class MainActivity : AppCompatActivity() {
         setupUI()
         sViewModel = ViewModelProvider(this)[SensorViewModel::class.java]
         fUtil = FileUtil(applicationContext)
-        rInterpreter = RhinoInterpreter()
 
         controllerButton?.setOnClickListener {
             if (!isRunning) runAcquisitionProcess()
@@ -61,6 +59,7 @@ class MainActivity : AppCompatActivity() {
     private fun finishUI(result: String) {
         isRunning = true
         isFinished = true
+        loadingBar?.isIndeterminate = false
         loadingBar?.progress = 100
         loadingText?.setText(R.string._100_100)
         controllerButton?.setText(R.string.finish)
@@ -78,7 +77,6 @@ class MainActivity : AppCompatActivity() {
         val libs: Array<String> =
             arrayOf(fUtil.loadAssetFile("math.js"), fUtil.loadAssetFile("numeric.js"))
         sViewModel.getAndEvaluateData(
-            rInterpreter,
             fUtil.loadAssetFile("calculation.js"),
             "startCalculation",
             libs,

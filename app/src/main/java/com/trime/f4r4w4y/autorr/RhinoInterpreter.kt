@@ -17,13 +17,13 @@ class RhinoInterpreter {
         scope = rhino.initStandardObjects()
     }
 
-    fun loadLib(jscode: String?) {
-        evalScript(jscode, "javascriptLibrary")
+    fun loadLib(jsCode: String?) {
+        evalScript(jsCode, "javascriptLibrary")
     }
 
-    fun evalScript(jscode: String?, scriptName: String?) {
+    fun evalScript(jsCode: String?, scriptName: String?) {
         try {
-            val result = rhino.evaluateString(scope, jscode, scriptName, 1, null)
+            val result = rhino.evaluateString(scope, jsCode, scriptName, 1, null)
             Log.d("JS_RESULT", result.toString())
         } catch (e: EvaluatorException) {
             Log.e("JS_ERROR_EVALUATOR", e.message!!)
