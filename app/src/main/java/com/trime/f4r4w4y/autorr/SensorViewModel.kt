@@ -1,24 +1,30 @@
 package com.trime.f4r4w4y.autorr
 
+import android.annotation.SuppressLint
 import android.app.Application
 import android.content.Context
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
-import android.util.Log
 import android.view.View
+import android.widget.TextView
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.google.android.material.snackbar.Snackbar
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.mozilla.javascript.NativeArray
 
 class SensorViewModel(application: Application) : AndroidViewModel(application),
     SensorEventListener {
     private lateinit var sensorManager: SensorManager
     private lateinit var gyroscope: Sensor
     private lateinit var accelerometer: Sensor
+    private lateinit var fUtil: FileUtil
+    private lateinit var job: Job
 
     private var gravity = FloatArray(3) { 0F }
     private var accValue = FloatArray(3) { 0F }
@@ -62,22 +68,28 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
     }
 
     fun unregisterSensors() {
-        sensorManager.unregisterListener(this)
+        if (this::sensorManager.isInitialized) sensorManager.unregisterListener(this)
     }
 
+    @SuppressLint("SetTextI18n")
     fun getAndEvaluateData(
         rhinoInterpreter: RhinoInterpreter,
         jsCode: String,
         funcName: String,
-        libs: Array<String>
+        libs: Array<String>,
+        loadingBar: LinearProgressIndicator?,
+        progressText: TextView?,
+        finishCallback: () -> Unit
     ) {
-        viewModelScope.launch {
+        fUtil = FileUtil(getApplication<Application>().applicationContext)
+        job = viewModelScope.launch {
             registerSensors()
-            Log.d("SENSOR_R", "counting ...")
-            val sensorData = getSensorData(6000) // Get and evaluate 1 minute data
+            val sensorData = getSensorData(6000, loadingBar) // Get and evaluate 1 minute data
             val (timeArr, accX, accY, accZ, gyrX, gyrY, gyrZ) = sensorData
-            Log.d("SENSOR_R", "sensor_data: ${sensorData.contentDeepToString()}")
             unregisterSensors()
+
+            loadingBar?.progress = 100
+            progressText?.setText(R.string.wait2_text)
 
             // Load all the libraries first
             libs.forEach {
@@ -88,7 +100,7 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
             rhinoInterpreter.evalScript(jsCode, "javascriptEvaluation")
 
             // Run the corresponding function
-            val result: Double? = rhinoInterpreter.callJsFunction(
+            val result: NativeArray? = rhinoInterpreter.callJsFunction(
                 funcName,
                 timeArr,
                 accX,
@@ -98,11 +110,23 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
                 gyrY,
                 gyrZ
             )
-            Log.d("SENSOR_R", "result: $result")
+
+            progressText?.text = "${R.string.result_text} ${result?.joinToString()}"
+            finishCallback()
         }
     }
 
-    private suspend fun getSensorData(dataSize: Int): Array<FloatArray> {
+    fun cancelJob() {
+        if (this::job.isInitialized && job.isActive) {
+            job.cancel()
+            unregisterSensors()
+        }
+    }
+
+    private suspend fun getSensorData(
+        dataSize: Int,
+        loadingBar: LinearProgressIndicator?
+    ): Array<FloatArray> {
         delay(1000) // Weirdly needed, to let the sensor register itself first
         var time = 0L
         var lastSeconds = String.format("%.2f", -1F).toFloat()
@@ -115,12 +139,26 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
         var gyrY: FloatArray = floatArrayOf()
         var gyrZ: FloatArray = floatArrayOf()
 
-        while (accX.size != dataSize) {
+        while (timeArr.size != dataSize) {
             delay(1) // Weirdly needed, to let the sensor update the value first
             if (time == 0L) time = System.currentTimeMillis()
 
             val seconds =
                 String.format("%.2f", (System.currentTimeMillis() - time) / 1000F).toFloat()
+
+            loadingBar?.progress = timeArr.size / dataSize
+
+            // Reset calculation if first two frequencies is not align correctly
+            if (timeArr.size > 1 && !"%.2f".format(timeArr[1] - timeArr[0]).contentEquals("0.01")) {
+                timeArr = floatArrayOf()
+                accX = floatArrayOf()
+                accY = floatArrayOf()
+                accZ = floatArrayOf()
+                gyrX = floatArrayOf()
+                gyrY = floatArrayOf()
+                gyrZ = floatArrayOf()
+            }
+
             if (!"%.2f".format(lastSeconds).contentEquals("%.2f".format(seconds))) {
                 lastSeconds = seconds
 

@@ -1379,29 +1379,35 @@ function startCalculation(time, ax, ay, az, gx_rad, gy_rad, gz_rad) {
   // ---------
   // Determining which signal will be used for remaining calculation
   // TODO: There should be snr calculation here
-  var fusion = theta_hat_complimentary;
+  var fusion = [theta_hat_complimentary, phi_hat_complimentary];
   var sudut = "Pitch";
 
   [b, a] = butter(1, [0.2 / fs, 0.8 / fs], "bandpass", 2);
-  var out = filtfilt(b, a, fusion);
 
-  var windowWidth = 75; // amount of data inside each window.
-  var thres = 0.3 * math.max(out); // 30% of max threshold
-  var peakdist = 2.75; // between 3 - 4 second
-  var minthres = 0.3 * math.min(out);
+  var totalPeaks = []
+  for (let i = 0; i < fusion.length; i++) {
+    var out = filtfilt(b, a, fusion[i]);
+    var windowWidth = 75; // amount of data inside each window.
+    var thres = 0.3 * math.max(out); // 30% of max threshold
+    var peakdist = 2.75; // between 3 - 4 second
+    var minthres = 0.3 * math.min(out);
 
-  var kernel = ones([windowWidth, 1]);
-  for (let i = 0; i < kernel.length; i++) {
-    kernel[i] = kernel[i][0] / windowWidth;
+    var kernel = ones([windowWidth, 1]);
+    for (let i = 0; i < kernel.length; i++) {
+      kernel[i] = kernel[i][0] / windowWidth;
+    }
+    var out = filter(kernel, [[1]], out)[0];
+
+    [rrpeaks, locs] = findpeaks(out, thres, peakdist);
+    totalPeaks.push(rrpeaks.length);
   }
-  var out = filter(kernel, [[1]], out)[0];
 
   // --------
   // STAGE [5]
   // ---------
   // Peak detection with "DoubleSided" default to on
-  [rrpeaks, locs] = findpeaks(out, thres, peakdist);
-  var totalPeaks = rrpeaks.length;
+  // [rrpeaks, locs] = findpeaks(out, thres, peakdist);
+  // var totalPeaks = rrpeaks.length;
 
   // ===
 
