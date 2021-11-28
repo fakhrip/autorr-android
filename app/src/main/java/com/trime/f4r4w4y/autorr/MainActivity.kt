@@ -64,7 +64,7 @@ class MainActivity : AppCompatActivity() {
         loadingBar?.progress = 100
         loadingText?.setText(R.string._100_100)
         controllerButton?.setText(R.string.finish)
-        progressText?.text = "${getString(R.string.result_text)}\n$result"
+        progressText?.text = "${getString(R.string.result_text)}\n\n$result"
     }
 
     private fun runAcquisitionProcess() {

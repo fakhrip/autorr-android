@@ -1399,7 +1399,7 @@ function startCalculation(time, ax, ay, az, gx_rad, gy_rad, gz_rad) {
     var out = filter(kernel, [[1]], out)[0];
 
     [rrpeaks, locs] = findpeaks(out, thres, peakdist);
-    totalPeaks.push(rrpeaks.length);
+    totalPeaks.push((i == 0 ? "Theta = " : "Phi = ") + rrpeaks.length + (i == 0 ? " (derived from pitch angle)" : " (derived from roll angle)"));
   }
 
   // --------

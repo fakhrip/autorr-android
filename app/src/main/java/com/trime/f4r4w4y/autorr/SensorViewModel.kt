@@ -115,7 +115,7 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
                 gyrZ
             )
 
-            result?.joinToString()?.let { finishCallback(it) }
+            result?.joinToString(",\n")?.let { finishCallback(it) }
         }
     }
 
@@ -160,7 +160,7 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
             // in other place without rendering it multiple times ¯\_(ツ)_/¯
             if (progress > 98)
                 progressText?.text =
-                    "Calculating respiration rate from acquired data, please wait …"
+                    getApplication<Application>().applicationContext.getString(R.string.wait2_text)
 
             // Reset calculation if first two frequencies is not align correctly
             if (timeArr.size > 1 && !"%.2f".format(timeArr[1] - timeArr[0]).contentEquals("0.01")) {
