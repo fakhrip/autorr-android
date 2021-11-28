@@ -17,6 +17,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.mozilla.javascript.NativeArray
+import kotlin.math.roundToInt
 
 class SensorViewModel(application: Application) : AndroidViewModel(application),
     SensorEventListener {
@@ -146,7 +147,8 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
             val seconds =
                 String.format("%.2f", (System.currentTimeMillis() - time) / 1000F).toFloat()
 
-            loadingBar?.progress = timeArr.size / dataSize
+            loadingBar?.progress =
+                ((timeArr.size.toDouble() / dataSize.toDouble()) * 100).roundToInt()
 
             // Reset calculation if first two frequencies is not align correctly
             if (timeArr.size > 1 && !"%.2f".format(timeArr[1] - timeArr[0]).contentEquals("0.01")) {
