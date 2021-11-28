@@ -12,6 +12,7 @@ import android.media.ToneGenerator
 import android.os.Handler
 import android.os.Looper
 import android.view.View
+import android.widget.Button
 import android.widget.TextView
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -82,6 +83,7 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
         loadingBar: LinearProgressIndicator?,
         progressText: TextView?,
         loadingText: TextView?,
+        controllerButton: Button?,
         finishCallback: (result: String) -> Unit
     ) {
         fUtil = FileUtil(getApplication<Application>().applicationContext)
@@ -93,7 +95,8 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
                 6000,
                 loadingBar,
                 progressText,
-                loadingText
+                loadingText,
+                controllerButton
             )
 
             // Unregister sensor to not waste any batteries
@@ -152,7 +155,8 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
         dataSize: Int,
         loadingBar: LinearProgressIndicator?,
         progressText: TextView?,
-        loadingText: TextView?
+        loadingText: TextView?,
+        controllerButton: Button?
     ): Array<FloatArray> {
         delay(1000) // Weirdly needed, to let the sensor register itself first
         var time = 0L
@@ -209,6 +213,7 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
 
         playSound()
         loadingBar?.isIndeterminate = true
+        controllerButton?.isEnabled = false
 
         return arrayOf(timeArr, accX, accY, accZ, gyrX, gyrY, gyrZ)
     }

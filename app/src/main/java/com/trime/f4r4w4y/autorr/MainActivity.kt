@@ -62,6 +62,7 @@ class MainActivity : AppCompatActivity() {
         loadingBar?.isIndeterminate = false
         loadingBar?.progress = 100
         loadingText?.setText(R.string._100_100)
+        controllerButton?.isEnabled = true
         controllerButton?.setText(R.string.finish)
         progressText?.text = "${getString(R.string.result_text)}\n\n$result"
     }
@@ -83,6 +84,7 @@ class MainActivity : AppCompatActivity() {
             loadingBar,
             progressText,
             loadingText,
+            controllerButton,
             this::finishUI
         )
     }
