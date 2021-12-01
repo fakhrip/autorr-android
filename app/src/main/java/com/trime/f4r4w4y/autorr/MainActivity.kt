@@ -2,6 +2,7 @@ package com.trime.f4r4w4y.autorr
 
 import android.annotation.SuppressLint
 import android.os.Bundle
+import android.view.WindowManager
 import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -57,6 +58,9 @@ class MainActivity : AppCompatActivity() {
     // really misleading XD
     @SuppressLint("SetTextI18n")
     private fun finishUI(result: String) {
+        // Its okay to sleep after whole process finished
+        window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
         isRunning = true
         isFinished = true
         loadingBar?.isIndeterminate = false
@@ -68,6 +72,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun runAcquisitionProcess() {
+        // Set screen to always on during acquisition process
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
         isRunning = true
         isFinished = false
         progressText?.setText(R.string.wait_text)
