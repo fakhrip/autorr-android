@@ -3,14 +3,17 @@ package com.trime.f4r4w4y.autorr
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
+import android.view.LayoutInflater
 import android.view.WindowManager
 import android.widget.Button
 import android.widget.TextView
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.ViewModelProvider
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.google.android.material.snackbar.Snackbar
+import com.google.android.material.textfield.TextInputLayout
 import com.trime.f4r4w4y.autorr.gql.QueryViewModel
 import java.io.IOException
 
@@ -59,7 +62,7 @@ class MainActivity : AppCompatActivity() {
 
         setupUI()
         sViewModel = ViewModelProvider(this)[SensorViewModel::class.java]
-        qViewModel = QueryViewModel()
+        qViewModel = ViewModelProvider(this)[QueryViewModel::class.java]
         fUtil = FileUtil(applicationContext)
 
         if (!isOnline()) {
@@ -115,9 +118,11 @@ class MainActivity : AppCompatActivity() {
     // Sorry this function name is
     // really misleading XD
     @SuppressLint("SetTextI18n")
-    private fun finishUI(result: String) {
+    private fun finishUI(csvVal: String, result: String) {
         // Its okay to sleep after whole process finished
         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
+        showMessageBox(csvVal)
 
         isRunning = true
         isFinished = true
@@ -128,6 +133,47 @@ class MainActivity : AppCompatActivity() {
         controllerButton?.setText(R.string.finish)
         progressText?.text = "${getString(R.string.result_text)}\n\n$result"
     }
+
+    private fun showMessageBox(csvVal: String) {
+
+        val messageBoxView =
+            LayoutInflater.from(this@MainActivity).inflate(R.layout.message_box, null)
+        val messageBoxBuilder = AlertDialog.Builder(this@MainActivity).setView(messageBoxView)
+        messageBoxBuilder.setCancelable(false)
+        val messageBoxInstance = messageBoxBuilder.show()
+
+        val inputTextField: TextInputLayout = messageBoxView.findViewById(R.id.inputTextField)
+        val sendButton: Button = messageBoxView.findViewById(R.id.sendButton)
+
+        sendButton.setOnClickListener {
+            if (inputTextField.editText?.text.toString() == "") {
+                inputTextField.error = "You need to fill in the respiration rate value"
+                return@setOnClickListener
+            }
+
+            if (this::qViewModel.isInitialized) {
+                qViewModel.sendData(csvVal, inputTextField.editText?.text.toString()).observe(this,
+                    { result ->
+                        if (result != "Unauthorized") {
+                            Snackbar.make(
+                                findViewById(android.R.id.content),
+                                "Success, thanks for your help !",
+                                Snackbar.LENGTH_LONG
+                            ).show()
+                            messageBoxInstance.dismiss()
+                        } else {
+                            Snackbar.make(
+                                findViewById(android.R.id.content),
+                                "Error happened, please contact me (fakhrip@protonmail.com)",
+                                Snackbar.LENGTH_LONG
+                            ).show()
+                            messageBoxInstance.dismiss()
+                        }
+                    })
+            }
+        }
+    }
+
 
     private fun runAcquisitionProcess() {
         // Set screen to always on during acquisition process
@@ -156,7 +202,10 @@ class MainActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
-        sViewModel.cancelJob()
-        sViewModel.unregisterSensors()
+
+        if (this::sViewModel.isInitialized) {
+            sViewModel.cancelJob()
+            sViewModel.unregisterSensors()
+        }
     }
 }

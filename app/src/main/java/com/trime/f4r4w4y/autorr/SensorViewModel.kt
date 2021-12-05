@@ -84,7 +84,7 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
         progressText: TextView?,
         loadingText: TextView?,
         controllerButton: Button?,
-        finishCallback: (result: String) -> Unit
+        finishCallback: (csvVal: String, result: String) -> Unit
     ) {
         fUtil = FileUtil(getApplication<Application>().applicationContext)
         job = viewModelScope.launch {
@@ -104,7 +104,8 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
 
             // Calculate respiration rate from acquired data and return the result
             val result: NativeArray? = calculateData(jsCode, funcName, libs, sensorData)
-            result?.joinToString(",\n")?.let { finishCallback(it) }
+            result?.joinToString(",\n")
+                ?.let { finishCallback(sensorData[sensorData.lastIndex].toString(), it) }
         }
     }
 
@@ -123,7 +124,7 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
         sensorData: Array<FloatArray>
     ): T? = withContext(Dispatchers.Default) {
         delay(50) // Weirdly needed, to let the suspend works ?
-        val (timeArr, accX, accY, accZ, gyrX, gyrY, gyrZ) = sensorData
+        val (timeArr, accX, accY, accZ, gyrX, gyrY, gyrZ, _) = sensorData
 
         val rhinoInterpreter = RhinoInterpreter()
 
@@ -169,6 +170,7 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
         var gyrX: FloatArray = floatArrayOf()
         var gyrY: FloatArray = floatArrayOf()
         var gyrZ: FloatArray = floatArrayOf()
+        var csvString = "time,accx,accy,accz,gyrx,gyry,gyrz\n"
 
         while (timeArr.size != dataSize) {
             delay(1) // Weirdly needed, to let the sensor update the value first
@@ -196,6 +198,7 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
                 gyrX = floatArrayOf()
                 gyrY = floatArrayOf()
                 gyrZ = floatArrayOf()
+                csvString = "time,accx,accy,accz,gyrx,gyry,gyrz\n"
             }
 
             if (!"%.2f".format(lastSeconds).contentEquals("%.2f".format(seconds))) {
@@ -208,6 +211,7 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
                 gyrX = gyrX.plus(gyrValue[0])
                 gyrY = gyrY.plus(gyrValue[0])
                 gyrZ = gyrZ.plus(gyrValue[0])
+                csvString += "$seconds,${accValue[0]},${accValue[1]},${accValue[2]},${gyrValue[0]},${gyrValue[1]},${gyrValue[2]}\n"
             }
         }
 
@@ -262,4 +266,8 @@ private operator fun <T> Array<T>.component6(): T {
 
 private operator fun <T> Array<T>.component7(): T {
     return get(6)
+}
+
+private operator fun <T> Array<T>.component8(): T {
+    return get(7)
 }

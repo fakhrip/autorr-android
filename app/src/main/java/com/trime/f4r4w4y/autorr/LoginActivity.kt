@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.widget.Button
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.widget.doOnTextChanged
+import androidx.lifecycle.ViewModelProvider
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputLayout
 import com.trime.f4r4w4y.autorr.gql.QueryViewModel
@@ -21,7 +22,7 @@ class LoginActivity : AppCompatActivity() {
         setContentView(R.layout.activity_login)
 
         setupUI()
-        qViewModel = QueryViewModel()
+        qViewModel = ViewModelProvider(this)[QueryViewModel::class.java]
 
         loginButton?.setOnClickListener {
             if (emailTextField?.editText?.text.toString() == "") {
