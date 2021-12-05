@@ -150,6 +150,7 @@ class MainActivity : AppCompatActivity() {
 
         val inputTextField: TextInputLayout = messageBoxView.findViewById(R.id.inputTextField)
         val sendButton: Button = messageBoxView.findViewById(R.id.sendButton)
+        val loadingBar: LinearProgressIndicator = messageBoxView.findViewById(R.id.loading_bar)
 
         sendButton.setOnClickListener {
             if (inputTextField.editText?.text.toString() == "") {
@@ -168,6 +169,7 @@ class MainActivity : AppCompatActivity() {
 
             if (this::qViewModel.isInitialized) {
                 sendButton.isEnabled = false
+                loadingBar.isIndeterminate = true
                 qViewModel.sendData(csvVal, inputTextField.editText?.text.toString()).observe(
                     this,
                     { result ->

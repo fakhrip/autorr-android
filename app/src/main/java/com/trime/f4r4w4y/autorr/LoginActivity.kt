@@ -44,6 +44,7 @@ class LoginActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
+            loginButton?.isEnabled = false
             qViewModel.login(
                 emailTextField?.editText?.text.toString(),
                 passwordTextField?.editText?.text.toString()
@@ -65,18 +66,21 @@ class LoginActivity : AppCompatActivity() {
                             "Email or Password is incorrect",
                             Snackbar.LENGTH_LONG
                         ).show()
+                        loginButton?.isEnabled = true
                     } else if (token == "nope") {
                         Snackbar.make(
                             findViewById(android.R.id.content),
                             "Error happened, please contact me (fakhrip@protonmail.com)",
                             Snackbar.LENGTH_LONG
                         ).show()
+                        loginButton?.isEnabled = true
                     } else {
                         Snackbar.make(
                             findViewById(android.R.id.content),
                             "Error happened: $token, please contact me (fakhrip@protonmail.com)",
                             Snackbar.LENGTH_LONG
                         ).show()
+                        loginButton?.isEnabled = true
                     }
                 })
         }
