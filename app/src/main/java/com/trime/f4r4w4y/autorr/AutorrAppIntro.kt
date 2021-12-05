@@ -16,35 +16,34 @@ class AutorrAppIntro : AppIntro2() {
             AppIntroFragment.newInstance(
                 title = "Selamat datang di AutoRR !",
                 description = "Silahkan baca terlebih dahulu cara untuk menggunakan aplikasinya dihalaman selanjutnya, lalu login kedalam aplikasi menggunakan password yang diberikan di https://autorr.justak.id",
+                imageDrawable = R.drawable.animated_ic_logo,
+                titleColor = ContextCompat.getColor(applicationContext, R.color.black),
+                descriptionColor = ContextCompat.getColor(applicationContext, R.color.black),
                 backgroundColor = ContextCompat.getColor(applicationContext, R.color.page1)
-            )
-        )
-        addSlide(
-            AppIntroFragment.newInstance(
-                title = "Cek kompatibilitas",
-                description = "Dikarenakan aplikasi ini membutuhkan smartphone dengan sensor accelerometer dan gyroscope, maka anda harus mencek kesesuiannya dengan smartphone anda, klik tombol cek kompatibilitas pada layar utama untuk melakukannya",
-                backgroundColor = ContextCompat.getColor(applicationContext, R.color.page2)
             )
         )
         addSlide(
             AppIntroFragment.newInstance(
                 title = "Tidur terlentang",
                 description = "Carilah dataran yang datar (misal dikasur), lalu tidur terlentang, dan taruh hp anda diatas badan bagian diafragma",
-                backgroundColor = ContextCompat.getColor(applicationContext, R.color.page3)
+                imageDrawable = R.drawable.page2,
+                backgroundColor = ContextCompat.getColor(applicationContext, R.color.page2)
             )
         )
         addSlide(
             AppIntroFragment.newInstance(
                 title = "Mulai akusisi data",
                 description = "Klik tombol start untuk memulai akusisi data, dan disaat yang bersamaan hitung secara manual jumlah pernapasan yang anda lakukan (terhitung satu saat masuk udara lalu keluar udara)",
-                backgroundColor = ContextCompat.getColor(applicationContext, R.color.page4)
+                imageDrawable = R.drawable.page3,
+                backgroundColor = ContextCompat.getColor(applicationContext, R.color.page3)
             )
         )
         addSlide(
             AppIntroFragment.newInstance(
                 title = "Bangun dan tunggu hasil",
                 description = "Jika sudah bunyi sebuah suara dari aplikasi, maka anda diperbolehkan untuk bangun (dan ingat hasil perhitungan pernapasan manual), setela itu anda cukup tunggu untuk beberapa saat, lalu isi data hasil perhitungan manual ke tempat yang sudah disediakan pada aplikasi",
-                backgroundColor = ContextCompat.getColor(applicationContext, R.color.page5)
+                imageDrawable = R.drawable.page4,
+                backgroundColor = ContextCompat.getColor(applicationContext, R.color.page4)
             )
         )
 
@@ -68,6 +67,10 @@ class AutorrAppIntro : AppIntro2() {
 
     override fun onDonePressed(currentFragment: Fragment?) {
         super.onDonePressed(currentFragment)
+        val editor = getSharedPreferences("autorr_pref", MODE_PRIVATE).edit()
+        editor.putBoolean("first_start", false)
+        editor.apply()
+
         startActivity(Intent(applicationContext, MainActivity::class.java))
         finish()
     }

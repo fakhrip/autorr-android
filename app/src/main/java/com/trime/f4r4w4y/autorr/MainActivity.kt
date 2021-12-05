@@ -35,17 +35,14 @@ class MainActivity : AppCompatActivity() {
         // Handle the splash screen transition.
         val splashScreen = installSplashScreen()
         splashScreen.setOnExitAnimationListener {
-            val editor = getSharedPreferences("autorr_pref", MODE_PRIVATE).edit()
             val pref = getSharedPreferences("autorr_pref", MODE_PRIVATE)
 
             // Check for first timer, open AppIntro if so
             val isFirstStart = pref.getBoolean("first_start", true)
             if (isFirstStart) {
-                editor.putBoolean("first_start", false)
-                editor.apply()
-
                 startActivity(Intent(applicationContext, AutorrAppIntro::class.java))
                 finish()
+                return@setOnExitAnimationListener
             }
 
             // Check for guest (not logged in yet), open LoginActivity if so
@@ -53,9 +50,10 @@ class MainActivity : AppCompatActivity() {
             if (isGuest == "nope") {
                 startActivity(Intent(applicationContext, LoginActivity::class.java))
                 finish()
+                return@setOnExitAnimationListener
             }
 
-            if (isGuest != "nope" && !isFirstStart) it.remove()
+            it.remove()
         }
 
         setContentView(R.layout.activity_main)

@@ -18,6 +18,7 @@
             android:exported="false" />
         <activity
             android:name=".AutorrAppIntro"
+            android:theme="@style/Theme.AutoRR"
             android:label="Autorr App Intro for showing tutorial stuff"
             android:exported="false" />
         <activity
