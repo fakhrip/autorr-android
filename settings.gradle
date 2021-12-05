@@ -3,7 +3,10 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        jcenter() // Warning: this repository is going to shut down soon
+
+        // Should not be here, but i think there is a bug in current android studio version
+        // especially the gradle version, but idk
+        maven { url "https://jitpack.io" }
     }
 }
 rootProject.name = "AutoRR"

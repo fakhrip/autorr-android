@@ -2,14 +2,24 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.trime.f4r4w4y.autorr">
 
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:allowBackup="true"
+        android:fullBackupContent="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:roundIcon="@mipmap/ic_launcher"
         android:supportsRtl="true"
-        android:theme="@style/Theme.AutoRR"
-        android:fullBackupContent="false">
+        android:theme="@style/Theme.AutoRR.Starting">
+        <activity
+            android:name=".LoginActivity"
+            android:theme="@style/Theme.AutoRR"
+            android:exported="false" />
+        <activity
+            android:name=".AutorrAppIntro"
+            android:label="Autorr App Intro for showing tutorial stuff"
+            android:exported="false" />
         <activity
             android:name=".MainActivity"
             android:exported="true">

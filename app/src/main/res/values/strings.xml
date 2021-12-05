@@ -10,4 +10,8 @@
     <string name="result_text">Predicted respiration rate value:</string>
     <string name="_0_100">0/100</string>
     <string name="_100_100">100/100</string>
+    <string name="email">Email</string>
+    <string name="login">Login</string>
+    <string name="password">Password</string>
+    <string name="login_page">Login Page</string>
 </resources>
