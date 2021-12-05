@@ -17,7 +17,7 @@ class QueryViewModel(application: Application) : AndroidViewModel(application) {
     fun sendData(csvVal: String, rrVal: String): LiveData<String> {
         val result = MutableLiveData<String>()
 
-        val base64val = Base64.encodeToString(csvVal.toByteArray(), Base64.DEFAULT)
+        val base64val = Base64.encodeToString(csvVal.toByteArray(), Base64.NO_WRAP)
         val token = getApplication<Application>().getSharedPreferences(
             "autorr_pref",
             AppCompatActivity.MODE_PRIVATE
@@ -34,7 +34,10 @@ class QueryViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch {
             try {
-                val response = gqLService.postDynamicQuery(paramObject.toString())
+                val response = gqLService.postAuthenticatedQuery(
+                    "Bearer ${token.toString()}",
+                    paramObject.toString()
+                )
                 if (response.isSuccessful) result.postValue(
                     JSONObject(
                         response.body().toString()
@@ -68,7 +71,7 @@ class QueryViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch {
             try {
-                val response = gqLService.postDynamicQuery(paramObject.toString())
+                val response = gqLService.postGuestQuery(paramObject.toString())
                 if (response.isSuccessful) token.postValue(
                     JSONObject(
                         response.body().toString()

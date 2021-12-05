@@ -69,10 +69,18 @@ class MainActivity : AppCompatActivity() {
                 "No internet connections available :(",
                 Snackbar.LENGTH_LONG
             ).show()
-            return
         }
 
         controllerButton?.setOnClickListener {
+            if (!isOnline()) {
+                Snackbar.make(
+                    findViewById(android.R.id.content),
+                    "No internet connections available :(",
+                    Snackbar.LENGTH_LONG
+                ).show()
+                return@setOnClickListener
+            }
+
             if (!isRunning) runAcquisitionProcess()
             else if (isFinished) resetUI()
             else resetUI(true)
@@ -149,8 +157,19 @@ class MainActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
+            if (!isOnline()) {
+                Snackbar.make(
+                    findViewById(android.R.id.content),
+                    "No internet connections available :(",
+                    Snackbar.LENGTH_LONG
+                ).show()
+                return@setOnClickListener
+            }
+
             if (this::qViewModel.isInitialized) {
-                qViewModel.sendData(csvVal, inputTextField.editText?.text.toString()).observe(this,
+                sendButton.isEnabled = false
+                qViewModel.sendData(csvVal, inputTextField.editText?.text.toString()).observe(
+                    this,
                     { result ->
                         if (result != "Unauthorized") {
                             Snackbar.make(
