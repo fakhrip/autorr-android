@@ -30,3 +30,7 @@ You can get the apk [here](https://github.com/fakhrip/autorr-android/blob/master
 ## Bug(s)
 
 There is currently a simple bug (or two) in the sensor handler which will be triggered if your smartphone dont actually have accelerometer and/or gyroscope sensor. (currently working on this bug)
+
+## Intermezzo
+
+Oh and anyway, i recorded the whole session of porting the octave/matlab code to javascript and then i created the timelapse and uploaded it on my youtube channel which you can see here, https://youtu.be/2PG6IHR1rSM
