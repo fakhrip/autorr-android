@@ -44,6 +44,12 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
 
         sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)?.let {
             this.gyroscope = it
+
+            sensorManager.registerListener(
+                this,
+                this.gyroscope,
+                SensorManager.SENSOR_DELAY_FASTEST
+            )
         } ?: run {
             Snackbar.make(
                 View(getApplication<Application>().applicationContext),
@@ -54,6 +60,12 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
 
         sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)?.let {
             this.accelerometer = it
+
+            sensorManager.registerListener(
+                this,
+                this.accelerometer,
+                SensorManager.SENSOR_DELAY_FASTEST
+            )
         } ?: run {
             Snackbar.make(
                 View(getApplication<Application>().applicationContext),
@@ -61,18 +73,6 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
                 Snackbar.LENGTH_LONG
             ).show()
         }
-
-        sensorManager.registerListener(
-            this,
-            this.gyroscope,
-            SensorManager.SENSOR_DELAY_FASTEST
-        )
-
-        sensorManager.registerListener(
-            this,
-            this.accelerometer,
-            SensorManager.SENSOR_DELAY_FASTEST
-        )
     }
 
     fun unregisterSensors() {
