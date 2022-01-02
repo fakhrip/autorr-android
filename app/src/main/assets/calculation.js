@@ -1832,7 +1832,15 @@ function startCalculation(time, ax, ay, az, gx_rad, gy_rad, gz_rad) {
   // STAGE [5]
   // ---------
   // Peak detection with "DoubleSided" default to on
-  [rrpeaks, _] = findpeaks(out, thres, peakdist);
-  totalPeaks.push(rrpeaks.length + " (derived from " + angle + " angle)");
+  [_, locs] = findpeaks(out, thres, peakdist);
+
+  // Get only positive peaks to match matlab findpeaks mechanism
+  var pos_peaks = [];
+  for (let i = 0; i < locs.length; i++) {
+    var val = out[locs[i]];
+    if (val >= 0) pos_peaks.push(val);
+  }
+
+  totalPeaks.push(pos_peaks.length + " (derived from " + angle + " angle)");
   return totalPeaks;
 }
