@@ -23,7 +23,25 @@ function sum(arr) {
 }
 
 function isempty(arr) {
+  if (arr.length == undefined) return false;
   return arr.length > 0 ? false : true;
+}
+
+function isvector(x) {
+  return size(x).length >= 2;
+}
+
+function isscalar(x) {
+  return typeof x == "number";
+}
+
+function isreal(x) {
+  for (let i = 0; i < x.length; i++) {
+    if (typeof x[i] == "object") {
+      return false;
+    }
+  }
+  return true;
 }
 
 function isInclude(arr, val) {
@@ -295,8 +313,415 @@ function sortWithIndeces(toSort, isAscending) {
   return [res, pos];
 }
 
-// https://github.com/gpeyre/numerical-tours/blob/master/matlab/toolbox_signal/snr.m
-function snr() {}
+function unique(arr) {
+  return arr.filter(function (value, index, self) {
+    return self.indexOf(value) === index;
+  });
+}
+
+// https://gist.github.com/engelen/fbce4476c9e68c52ff7e5c2da5c24a28
+function argmax(array) {
+  return [].reduce.call(array, (m, c, i, arr) => (c > arr[m] ? i : m), 0);
+}
+
+function argmin(array) {
+  return [].reduce.call(array, (m, c, i, arr) => (c < arr[m] ? i : m), 0);
+}
+
+// https://github.com/hrtlacek/SNR/blob/main/SNR.ipynb
+function snr(x, fs) {
+  if (fs == undefined) {
+    var fs = 1;
+  }
+
+  var w = kaiser(x.length, 38);
+  [ps, faxis] = periodogram(x, w, x.length, fs);
+  var fundBin = argmax(ps);
+  var fundIndices = getIndicesAroundPeak(ps, fundBin);
+  var fundFrequency = faxis[fundBin];
+
+  var nHarmonics = 6;
+  var harmonicFs = getHarmonics(fundFrequency, fs, nHarmonics, true);
+
+  var fullHarmonicBins = [];
+  for (let i = 0; i < harmonicFs.length; i++) {
+    var searcharea = 0.1 * fundFrequency;
+    var estimation = harmonicFs[i];
+    [binNum, _] = getPeakInArea(ps, faxis, estimation, searcharea);
+    var allBins = getIndicesAroundPeak(ps, binNum, 1000);
+    fullHarmonicBins.push(allBins);
+  }
+
+  fundIndices = math.sort(fundIndices);
+  var pFund = bandpower(
+    ps.slice(fundIndices[0], fundIndices[fundIndices.length - 1])
+  );
+
+  var noisePrepared = ps;
+  noisePrepared[fundIndices] = 0;
+  noisePrepared[fullHarmonicBins] = 0;
+
+  var temp = [];
+  for (let i = 0; i < noisePrepared.length; i++) {
+    if (noisePrepared[i] != 0) {
+      temp.push(noisePrepared[i]);
+    }
+  }
+  var noiseMean = math.median(temp);
+
+  noisePrepared[fundIndices] = noiseMean;
+  noisePrepared[fullHarmonicBins] = noiseMean;
+
+  var noisePower = bandpower(noisePrepared);
+  r = 10 * math.log10(pFund / noisePower);
+
+  return r;
+}
+
+function bandpower(ps, mode) {
+  if (mode == undefined) {
+    var mode = "psd";
+  }
+
+  if (mode == "time") {
+    var x = ps;
+    var l2norm = math.divide(math.pow(math.norm(x), 2), x.length);
+    return l2norm;
+  } else if (mode == "psd") {
+    return math.sum(ps);
+  }
+}
+
+function getIndicesAroundPeak(arr, peakIndex, searchWidth) {
+  if (searchWidth == undefined) {
+    var searchWidth = 1000;
+  }
+
+  var peakBins = [];
+  var magMax = arr[peakIndex];
+  var curVal = magMax;
+
+  for (var i = 0; i < searchWidth; i++) {
+    var newBin = peakIndex + i;
+    if (newBin > arr.length) break;
+
+    var newVal = arr[newBin];
+    if (newVal > curVal) {
+      break;
+    } else {
+      peakBins.push(parseFloat(newBin));
+      curVal = newVal;
+    }
+  }
+
+  var curVal = magMax;
+  for (var i = 0; i < searchWidth; i++) {
+    var newBin = peakIndex - i;
+    if (newBin < 0) break;
+
+    var newVal = arr[newBin];
+    if (newVal > curVal) {
+      break;
+    } else {
+      peakBins.push(parseFloat(newBin));
+      curVal = newVal;
+    }
+  }
+
+  return unique(peakBins);
+}
+
+function freqToBin(fAxis, Freq) {
+  return argmin(math.abs(evalForEach(fAxis, "-", Freq)));
+}
+
+function getPeakInArea(psd, faxis, estimation, searchWidthHz) {
+  /*
+   * returns bin and frequency of the maximum in an area
+   */
+
+  if (searchWidthHz == undefined) {
+    var searchWidthHz = 10;
+  }
+
+  var binLow = freqToBin(faxis, estimation - searchWidthHz);
+  var binHi = freqToBin(faxis, estimation + searchWidthHz);
+  if (binLow == binHi) binHi += 1;
+
+  var peakbin = binLow + argmax(psd.slice(binLow, binHi));
+  return [peakbin, faxis[peakbin]];
+}
+
+function getHarmonics(fund, sr, nHarmonics, aliased) {
+  if (nHarmonics == undefined) {
+    var nHarmonics = 6;
+  }
+
+  if (aliased == undefined) {
+    var aliased = false;
+  }
+
+  var harmonicMultipliers = growArr(2, nHarmonics + 2 - 1);
+  var harmonicFs = evalForEach(harmonicMultipliers, "*", fund);
+  if (!aliased) {
+    var temp = [];
+    for (let i = 0; i < harmonicFs.length; i++) {
+      if (harmonicFs[i] < sr / 2) {
+        temp.push(harmonicFs[i]);
+      }
+    }
+    harmonicFs = temp;
+  } else {
+    for (let i = 0; i < harmonicFs.length; i++) {
+      var nyqZone = math.floor(harmonicFs[i] / (sr / 2));
+      var oddEvenNyq = math.mod(nyqZone, 2);
+
+      harmonicFs[i] = math.mod(harmonicFs[i], sr / 2);
+      if (oddEvenNyq == 1) {
+        harmonicFs[i] = sr / 2 - harmonicFs[i];
+      }
+    }
+  }
+
+  return harmonicFs;
+}
+
+function nextpow2(num) {
+  return Math.ceil(Math.log2(Math.abs(num)));
+}
+
+function sumsq(arr) {
+  var sum = 0;
+  for (let i = 0; i < arr.length; i++) {
+    sum += math.pow(arr[i], 2);
+  }
+  return sum;
+}
+
+// ===
+// Code reference:
+// /usr/share/octave/5.2.0/m/signal/periodogram.m
+// ===
+function periodogram(x, window, nfft, fs, range) {
+  // FIXME: most of the implementation here may not
+  //        work for other cases as i only assume
+  //        that nfft will always be equal to x.length
+
+  if (!isvector(x)) {
+    throw "periodogram: X must be a real or complex vector";
+  }
+  var x = math.transpose(x);
+  var n = size(x)[1];
+  x = x[0];
+
+  if (!isempty(window)) {
+    if (!isvector(window) || window.length != n) {
+      throw "periodogram: WINDOW must be a vector of the same length as X";
+    }
+    window = math.transpose(window);
+    for (let i = 0; i < window.length; i++) {
+      x[i] *= window[i];
+    }
+  }
+
+  if (isempty(nfft)) {
+    nfft = math.max(256, math.pow(2, nextpow2(n)));
+  } else if (!isscalar(nfft)) {
+    throw "periodogram: NFFT must be a scalar";
+  }
+
+  var use_w_freq = isempty(fs);
+  if (!use_w_freq && !isscalar(fs)) {
+    throw "periodogram: FS must be a scalar";
+  }
+
+  if (range == "onesided") {
+    range = 1;
+  } else if (range == "twosided") {
+    range = 2;
+  } else if (range == "centered") {
+    throw 'periodogram: "centered" range type is not implemented';
+  } else {
+    range = 2 - isreal(x);
+  }
+
+  // compute periodogram
+
+  if (n > nfft) {
+    var rr = math.mod(x.length, nfft);
+    if (rr) {
+      x = x.concat(zeros([nfft - rr, 1]));
+    }
+    x = math.sum(math.reshape(x, [nfft]), 2);
+  }
+
+  if (!isempty(window)) {
+    var n = sumsq(window);
+  }
+  var Pxx = math.abs(fft(x));
+  for (let i = 0; i < Pxx.length; i++) {
+    Pxx[i] = math.divide(math.pow(Pxx[i], 2), n);
+  }
+
+  if (use_w_freq) {
+    Pxx = math.divide(Pxx, 2 * math.pi);
+  } else {
+    Pxx = math.divide(Pxx, fs);
+  }
+
+  // generate output arguments
+
+  if (range == 1) {
+    // onsided
+    if (!math.mod(nfft, 2)) {
+      // nfft is even
+      var psd_len = nfft / 2 + 1;
+      Pxx = math.add(
+        Pxx.slice(0, psd_len),
+        [0].concat(Pxx.slice(psd_len, nfft).reverse()).concat(0)
+      );
+    } else {
+      // nfft is odd
+      var psd_len = (nfft + 1) / 2;
+      Pxx = math.add(
+        Pxx.slice(0, psd_len),
+        [0].concat(Pxx.slice(psd_len, nfft).reverse())
+      );
+    }
+  }
+
+  if (range == 1) {
+    var f = math.divide(math.transpose(growArr(0, nfft / 2)), nfft);
+  } else if (range == 2) {
+    var f = math.divide(math.transpose(growArr(0, nfft - 1)), nfft);
+  }
+
+  if (use_w_freq) {
+    f = math.multiply(f, 2 * math.pi);
+  } else {
+    f = math.multiply(f, fs);
+  }
+
+  return [Pxx, f];
+}
+
+// Ported based on
+// https://www.mathworks.com/matlabcentral/fileexchange/13606-fast-fourier-transform-algorithm
+function fft(input) {
+  var ss = input.length;
+
+  // Zero pad input if ss is not power of two
+  if (ss & (ss - 1)) {
+    var temp = input;
+
+    var offset = math.pow(2, nextpow2(ss)) - ss;
+    for (let i = 0; i < offset; i++) {
+      input.push(0);
+    }
+
+    var input = temp;
+  }
+
+  var l = math.log2(ss);
+  var p = math.ceil(l);
+  var Y = [];
+  Y.push(input);
+  var N = math.pow(2, p);
+  var N2 = math.divide(N, 2);
+  var YY = math.divide(math.multiply(-math.pi, math.sqrt(-1)), N2);
+  var WW = math.exp(YY);
+  var JJ = growArr(0, N2 - 1);
+  var temp = [];
+  for (let i = 0; i < JJ.length; i++) {
+    temp.push(math.pow(WW, JJ[i]));
+  }
+  var W = [];
+  W.push(temp);
+
+  for (let i = 0; i < p - 1; i++) {
+    var u = [];
+    for (let i = 0; i < Y.length; i++) {
+      var temp = [];
+      for (let j = 0; j < N2; j++) {
+        temp.push(Y[i][j]);
+      }
+      u.push(temp);
+    }
+    var v = [];
+    for (let i = 0; i < Y.length; i++) {
+      var temp = [];
+      for (let j = N2; j < N; j++) {
+        temp.push(Y[i][j]);
+      }
+      v.push(temp);
+    }
+    var t = math.add(u, v);
+    var S = [];
+    for (let i = 0; i < W.length; i++) {
+      var temp = [];
+      for (let j = 0; j < W[i].length; j++) {
+        temp.push(math.multiply(W[i][j], math.subtract(u[i][j], v[i][j])));
+      }
+      S.push(temp);
+    }
+    Y = t.concat(S);
+    var U = [];
+    for (let i = 0; i < W.length; i++) {
+      var temp = [];
+      for (let j = 0; j < N2; j += 2) {
+        temp.push(W[i][j]);
+      }
+      U.push(temp);
+    }
+    W = U.concat(U);
+    N = N2;
+    N2 = math.divide(N2, 2);
+  }
+
+  var u = [];
+  for (let i = 0; i < Y.length; i++) {
+    u.push(Y[i][0]);
+  }
+  var v = [];
+  for (let i = 0; i < Y.length; i++) {
+    v.push(Y[i][1]);
+  }
+
+  var Y = math.add(u, v).concat(math.subtract(u, v));
+  return Y;
+}
+
+// ===
+// Code reference:
+// /usr/share/octave/5.2.0/m/signal/periodogram.m
+// ===
+function kaiser(m, beta) {
+  if (beta == undefined) {
+    var beta = 0.5;
+  }
+
+  if (!(isscalar(m) && Number.isInteger(m) && m > 0)) {
+    throw "kaiser: M must be a positive integer";
+  } else if (!isscalar(beta)) {
+    throw "kaiser: BETA must be a real scalar";
+  }
+
+  if (m == 1) {
+    var w = 1;
+  } else {
+    var N = m - 1;
+    var k = math.transpose(growArr(0, N));
+    for (let i = 0; i < k.length; i++) {
+      k[i] = ((2 * beta) / N) * math.sqrt(k[i] * (N - k[i]));
+    }
+    var w = [];
+    for (let i = 0; i < k.length; i++) {
+      w.push(BESSEL.besseli(k[i], 0) / BESSEL.besseli(beta, 0));
+    }
+  }
+
+  return w;
+}
 
 // ===
 // Code reference:
@@ -434,7 +859,7 @@ function butter(n, wc, type, nout) {
       for (var i = 0; i < wc.length; i++) {
         wc[i] = (2 / T) * math.tan((math.pi * wc[i]) / T);
       }
-    } else if (typeof wc == "number") {
+    } else if (isscalar(wc)) {
       wc = (2 / T) * math.tan((math.pi * wc) / T);
     } else {
       throw "butter: Wc must be either an object (array) or a number";
@@ -1374,43 +1799,40 @@ function startCalculation(time, ax, ay, az, gx_rad, gy_rad, gz_rad) {
   var theta_hat_complimentary = filtfilt(b, a, theta_hat_complimentary[0]);
   var phi_hat_complimentary = filtfilt(b, a, phi_hat_complimentary[0]);
 
-  // --------
+  // ---------
   // STAGE [4]
   // ---------
   // Determining which signal will be used for remaining calculation
-  // TODO: There should be snr calculation here
-  var fusion = [theta_hat_complimentary, phi_hat_complimentary];
-  var sudut = "Pitch";
+  snr_phi = snr(phi_hat_complimentary, fs);
+  snr_theta = snr(theta_hat_complimentary, fs);
+
+  if (snr_theta >= snr_phi) {
+    fusion = theta_hat_complimentary;
+    angle = "pitch";
+  } else {
+    fusion = phi_hat_complimentary;
+    angle = "roll";
+  }
 
   [b, a] = butter(1, [0.2 / fs, 0.8 / fs], "bandpass", 2);
 
-  var totalPeaks = []
-  for (let i = 0; i < fusion.length; i++) {
-    var out = filtfilt(b, a, fusion[i]);
-    var windowWidth = 75; // amount of data inside each window.
-    var thres = 0.3 * math.max(out); // 30% of max threshold
-    var peakdist = 2.75; // between 3 - 4 second
-    var minthres = 0.3 * math.min(out);
+  var totalPeaks = [];
+  var out = filtfilt(b, a, fusion);
+  var windowWidth = 75; // amount of data inside each window.
+  var thres = 0.3 * math.max(out); // 30% of max threshold
+  var peakdist = 2.75; // between 3 - 4 second
 
-    var kernel = ones([windowWidth, 1]);
-    for (let i = 0; i < kernel.length; i++) {
-      kernel[i] = kernel[i][0] / windowWidth;
-    }
-    var out = filter(kernel, [[1]], out)[0];
-
-    [rrpeaks, locs] = findpeaks(out, thres, peakdist);
-    totalPeaks.push((i == 0 ? "Theta = " : "Phi = ") + rrpeaks.length + (i == 0 ? " (derived from pitch angle)" : " (derived from roll angle)"));
+  var kernel = ones([windowWidth, 1]);
+  for (let x = 0; x < kernel.length; x++) {
+    kernel[x] = kernel[x][0] / windowWidth;
   }
+  var out = filter(kernel, [[1]], out)[0];
 
   // --------
   // STAGE [5]
   // ---------
   // Peak detection with "DoubleSided" default to on
-  // [rrpeaks, locs] = findpeaks(out, thres, peakdist);
-  // var totalPeaks = rrpeaks.length;
-
-  // ===
-
-  // Return the final result (predicted respiration rate)
+  [rrpeaks, _] = findpeaks(out, thres, peakdist);
+  totalPeaks.push(rrpeaks.length + " (derived from " + angle + " angle)");
   return totalPeaks;
 }

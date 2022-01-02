@@ -206,7 +206,11 @@ class MainActivity : AppCompatActivity() {
         loadingText?.setText(R.string._0_100)
 
         val libs: Array<String> =
-            arrayOf(fUtil.loadAssetFile("math.js"), fUtil.loadAssetFile("numeric.js"))
+            arrayOf(
+                fUtil.loadAssetFile("math.js"),
+                fUtil.loadAssetFile("bessel.js"),
+                fUtil.loadAssetFile("numeric.js")
+            )
         sViewModel.getAndEvaluateData(
             fUtil.loadAssetFile("calculation.js"),
             "startCalculation",
