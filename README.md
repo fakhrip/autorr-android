@@ -4,7 +4,7 @@ This application is built mainly to run the data acquisition process from the se
 
 ## Signal Processing
 
-The signal processing code uses [math.js](https://mathjs.org/) and [numeric.js](https://github.com/sloisel/numeric) library as the dependency to do nearly all matrix operations inside the algorithm.
+The signal processing code uses [math.js](https://mathjs.org/) and [numeric.js](https://github.com/sloisel/numeric) library as the dependency to do nearly all matrix operations inside the algorithm, and also [bessel.js](https://github.com/SheetJS/bessel) to do bessel function.
 
 The [calculation.js](./app/src/main/assets/calculation.js) are the main algorithm that will calculate and measure the respiration rate value from the acquired sensor data by doing several signal processing steps that you can understand by looking at the code (for now, im going to release the link to the paper for this research in the near future).
 
@@ -29,7 +29,7 @@ You can get the apk [here](https://github.com/fakhrip/autorr-android/blob/master
 
 ## Bug(s)
 
-There is currently a simple bug (or two) in the sensor handler which will be triggered if your smartphone dont actually have accelerometer and/or gyroscope sensor. (currently working on this bug)
+I have fixed all the bugs that i have found earlier, but if you found another one, please dont hesitate to open up an issue in this repo.
 
 ## Intermezzo
 
