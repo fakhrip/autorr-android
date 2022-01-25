@@ -11,20 +11,23 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.ViewModelProvider
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.google.android.material.snackbar.Snackbar
-import com.trime.f4r4w4y.autorr.gql.QueryViewModel
+import io.socket.client.Socket
 import java.io.IOException
 
 
 class MainActivity : AppCompatActivity() {
     private lateinit var sViewModel: SensorViewModel
-    private lateinit var qViewModel: QueryViewModel
     private lateinit var fUtil: FileUtil
     private var progressText: TextView? = null
     private var loadingText: TextView? = null
+    private var uidText: TextView? = null
     private var controllerButton: Button? = null
+    private var generateButton: Button? = null
     private var loadingBar: LinearProgressIndicator? = null
     private var isRunning: Boolean = false
     private var isFinished: Boolean = false
+    private var mSocket: Socket? = null
+    private var socketUID: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -49,7 +52,6 @@ class MainActivity : AppCompatActivity() {
 
         setupUI()
         sViewModel = ViewModelProvider(this)[SensorViewModel::class.java]
-        qViewModel = ViewModelProvider(this)[QueryViewModel::class.java]
         fUtil = FileUtil(applicationContext)
 
         if (!isOnline()) {
@@ -59,6 +61,10 @@ class MainActivity : AppCompatActivity() {
                 Snackbar.LENGTH_LONG
             ).show()
         }
+
+        SocketHandler.setSocket(findViewById(android.R.id.content))
+        SocketHandler.establishConnection()
+        mSocket = SocketHandler.getSocket()
 
         controllerButton?.setOnClickListener {
             if (!isOnline()) {
@@ -74,6 +80,18 @@ class MainActivity : AppCompatActivity() {
             else if (isFinished) resetUI()
             else resetUI(true)
         }
+
+        generateButton?.setOnClickListener {
+            socketUID = getRandomString(6)
+            uidText?.setText(socketUID)
+        }
+    }
+
+    fun getRandomString(length: Int): String {
+        val allowedChars = ('A'..'Z') + ('a'..'z') + ('0'..'9')
+        return (1..length)
+            .map { allowedChars.random() }
+            .joinToString("")
     }
 
     fun isOnline(): Boolean {
@@ -92,9 +110,11 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupUI() {
         controllerButton = findViewById(R.id.controller_button)
+        generateButton = findViewById(R.id.generate_button)
         progressText = findViewById(R.id.progress_text)
         loadingBar = findViewById(R.id.loading_bar)
         loadingText = findViewById(R.id.loading_text)
+        uidText = findViewById(R.id.uid_text)
 
         resetUI()
     }
@@ -152,8 +172,15 @@ class MainActivity : AppCompatActivity() {
             progressText,
             loadingText,
             controllerButton,
+            mSocket,
             this::finishUI
         )
+    }
+
+    override fun onStop() {
+        super.onStop()
+
+        SocketHandler.closeConnection()
     }
 
     override fun onPause() {

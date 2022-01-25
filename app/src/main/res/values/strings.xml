@@ -17,4 +17,6 @@
     <string name="please_text">Please input your manually calculated respiration rate (tolong masukkan perhitungan pernapasan secara manual yang anda telah hitung)</string>
     <string name="respiration_rate_value">Respiration rate value</string>
     <string name="send">Send</string>
+    <string name="generate">Generate</string>
+    <string name="websocket_uid">Websocket UID</string>
 </resources>

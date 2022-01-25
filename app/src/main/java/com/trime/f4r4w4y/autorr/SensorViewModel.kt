@@ -18,6 +18,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.google.android.material.snackbar.Snackbar
+import io.socket.client.Socket
 import kotlinx.coroutines.*
 import org.mozilla.javascript.NativeArray
 import kotlin.math.roundToInt
@@ -88,6 +89,7 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
         progressText: TextView?,
         loadingText: TextView?,
         controllerButton: Button?,
+        socket: Socket?,
         finishCallback: (result: String) -> Unit
     ) {
         fUtil = FileUtil(getApplication<Application>().applicationContext)
@@ -100,7 +102,8 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
                 loadingBar,
                 progressText,
                 loadingText,
-                controllerButton
+                controllerButton,
+                socket
             )
 
             // Unregister sensor to not waste any batteries
@@ -161,7 +164,8 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
         loadingBar: LinearProgressIndicator?,
         progressText: TextView?,
         loadingText: TextView?,
-        controllerButton: Button?
+        controllerButton: Button?,
+        socket: Socket?
     ): Array<FloatArray> {
         delay(1000) // Weirdly needed, to let the sensor register itself first
         var time = 0L
@@ -213,8 +217,10 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
                 accY = accY.plus(accValue[1])
                 accZ = accZ.plus(accValue[2])
                 gyrX = gyrX.plus(gyrValue[0])
-                gyrY = gyrY.plus(gyrValue[0])
-                gyrZ = gyrZ.plus(gyrValue[0])
+                gyrY = gyrY.plus(gyrValue[1])
+                gyrZ = gyrZ.plus(gyrValue[2])
+
+                socket?.emit("", "$timeArr,$accX,$accY,$accZ,$gyrX,$gyrY,$gyrZ")
             }
         }
 
