@@ -88,7 +88,7 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
         progressText: TextView?,
         loadingText: TextView?,
         controllerButton: Button?,
-        finishCallback: (csvVal: String, result: String) -> Unit
+        finishCallback: (result: String) -> Unit
     ) {
         fUtil = FileUtil(getApplication<Application>().applicationContext)
         job = viewModelScope.launch {
@@ -106,13 +106,10 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
             // Unregister sensor to not waste any batteries
             unregisterSensors()
 
-            // Convert sensor data to csv
-            val csvString = dataToCSV(sensorData)
-
             // Calculate respiration rate from acquired data and return the result
             val result: NativeArray? = calculateData(jsCode, funcName, libs, sensorData)
             result?.joinToString(",\n")
-                ?.let { finishCallback(csvString, it) }
+                ?.let { finishCallback(it) }
         }
     }
 
@@ -122,24 +119,6 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
             unregisterSensors()
         }
     }
-
-    private suspend fun dataToCSV(sensorData: Array<FloatArray>): String =
-        withContext(Dispatchers.Default) {
-            var csvString = "time,accx,accy,accz,gyrx,gyry,gyrz\n"
-            for (i in 0 until dataSize) {
-                val timeArr = sensorData[0][i]
-                val accX = sensorData[1][i]
-                val accY = sensorData[2][i]
-                val accZ = sensorData[3][i]
-                val gyrX = sensorData[4][i]
-                val gyrY = sensorData[5][i]
-                val gyrZ = sensorData[6][i]
-                csvString += "$timeArr,$accX,$accY,$accZ,$gyrX,$gyrY,$gyrZ\n"
-            }
-
-            return@withContext csvString
-        }
-
 
     @Suppress("UNCHECKED_CAST")
     private suspend fun <T> calculateData(
