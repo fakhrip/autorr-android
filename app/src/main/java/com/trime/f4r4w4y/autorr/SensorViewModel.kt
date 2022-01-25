@@ -90,6 +90,7 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
         loadingText: TextView?,
         controllerButton: Button?,
         socket: Socket?,
+        socketUID: String,
         finishCallback: (result: String) -> Unit
     ) {
         fUtil = FileUtil(getApplication<Application>().applicationContext)
@@ -103,7 +104,8 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
                 progressText,
                 loadingText,
                 controllerButton,
-                socket
+                socket,
+                socketUID
             )
 
             // Unregister sensor to not waste any batteries
@@ -165,7 +167,8 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
         progressText: TextView?,
         loadingText: TextView?,
         controllerButton: Button?,
-        socket: Socket?
+        socket: Socket?,
+        socketUID: String
     ): Array<FloatArray> {
         delay(1000) // Weirdly needed, to let the sensor register itself first
         var time = 0L
