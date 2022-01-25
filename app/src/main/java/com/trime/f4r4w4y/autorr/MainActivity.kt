@@ -82,14 +82,14 @@ class MainActivity : AppCompatActivity() {
         }
 
         generateButton?.setOnClickListener {
-            socketUID = getRandomString(6)
-            uidText?.setText(socketUID)
+            socketUID = getRandomString()
+            uidText?.text = socketUID
         }
     }
 
-    fun getRandomString(length: Int): String {
+    private fun getRandomString(): String {
         val allowedChars = ('A'..'Z') + ('a'..'z') + ('0'..'9')
-        return (1..length)
+        return (1..6)
             .map { allowedChars.random() }
             .joinToString("")
     }
@@ -148,6 +148,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun runAcquisitionProcess() {
+        if (socketUID == "") {
+            Snackbar.make(
+                findViewById(android.R.id.content),
+                "Generate websocket uid first...",
+                Snackbar.LENGTH_LONG
+            ).show()
+            return
+        }
+
         // Set screen to always on during acquisition process
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
@@ -173,6 +182,7 @@ class MainActivity : AppCompatActivity() {
             loadingText,
             controllerButton,
             mSocket,
+            socketUID,
             this::finishUI
         )
     }
