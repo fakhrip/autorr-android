@@ -234,8 +234,8 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
                 accY = accY.plus(accValue[1])
                 accZ = accZ.plus(accValue[2])
                 gyrX = gyrX.plus(gyrValue[0])
-                gyrY = gyrY.plus(gyrValue[0])
-                gyrZ = gyrZ.plus(gyrValue[0])
+                gyrY = gyrY.plus(gyrValue[1])
+                gyrZ = gyrZ.plus(gyrValue[2])
             }
         }
 
