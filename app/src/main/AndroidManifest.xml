@@ -13,10 +13,6 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.AutoRR.Starting">
         <activity
-            android:name=".LoginActivity"
-            android:theme="@style/Theme.AutoRR"
-            android:exported="false" />
-        <activity
             android:name=".AutorrAppIntro"
             android:theme="@style/Theme.AutoRR"
             android:label="Autorr App Intro for showing tutorial stuff"
