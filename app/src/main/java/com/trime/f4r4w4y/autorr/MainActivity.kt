@@ -82,8 +82,15 @@ class MainActivity : AppCompatActivity() {
         }
 
         generateButton?.setOnClickListener {
+            val prevUID = socketUID
             socketUID = getRandomString()
             uidText?.text = socketUID
+
+            if (prevUID != "") {
+                SocketHandler.changeRoom(prevUID, socketUID)
+            } else {
+                SocketHandler.enterRoom(socketUID)
+            }
         }
     }
 
@@ -187,9 +194,10 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
-    override fun onStop() {
-        super.onStop()
+    override fun onDestroy() {
+        super.onDestroy()
 
+        if (socketUID != "") SocketHandler.leaveRoom(socketUID)
         SocketHandler.closeConnection()
     }
 

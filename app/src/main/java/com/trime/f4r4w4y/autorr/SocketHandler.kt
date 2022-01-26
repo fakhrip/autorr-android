@@ -13,7 +13,7 @@ object SocketHandler {
     @Synchronized
     fun setSocket(view: View) {
         try {
-            mSocket = IO.socket("http://10.0.2.2:3000")
+            mSocket = IO.socket("http://192.168.0.9:7777")
         } catch (e: URISyntaxException) {
             Snackbar.make(
                 view,
@@ -36,5 +36,21 @@ object SocketHandler {
     @Synchronized
     fun closeConnection() {
         mSocket.disconnect()
+    }
+
+    @Synchronized
+    fun enterRoom(room: String) {
+        mSocket.emit("listen_data", room)
+    }
+
+    @Synchronized
+    fun leaveRoom(room: String) {
+        mSocket.emit("unlisten_data", room)
+    }
+
+    @Synchronized
+    fun changeRoom(prev_room: String, next_room: String) {
+        this.leaveRoom(prev_room)
+        this.enterRoom(next_room)
     }
 }

@@ -20,6 +20,7 @@ import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.google.android.material.snackbar.Snackbar
 import io.socket.client.Socket
 import kotlinx.coroutines.*
+import org.json.JSONObject
 import org.mozilla.javascript.NativeArray
 import kotlin.math.roundToInt
 
@@ -223,7 +224,18 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
                 gyrY = gyrY.plus(gyrValue[1])
                 gyrZ = gyrZ.plus(gyrValue[2])
 
-                socket?.emit(socketUID, "$timeArr,$accX,$accY,$accZ,$gyrX,$gyrY,$gyrZ")
+                val payload = JSONObject()
+                payload.put("room", socketUID)
+                payload.put(
+                    "data", "$seconds," +
+                            "${"%.6f".format(accValue[0])}," +
+                            "${"%.6f".format(accValue[1])}," +
+                            "${"%.6f".format(accValue[2])}," +
+                            "${"%.6f".format(gyrValue[0])}," +
+                            "${"%.6f".format(gyrValue[1])}," +
+                            "%.6f".format(gyrValue[2])
+                )
+                socket?.emit("send_data", payload)
             }
         }
 
