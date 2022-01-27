@@ -21,6 +21,7 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <View
+        android:id="@+id/linebar"
         android:layout_width="0dp"
         android:layout_height="2dp"
         android:background="?colorSecondaryVariant"
@@ -29,6 +30,35 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@id/project_name" />
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/ipTextField"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:hint="@string/websocket_url"
+        app:placeholderText="http://192.168.0.9:7777"
+        app:layout_constraintTop_toBottomOf="@+id/linebar"
+        app:layout_constraintEnd_toEndOf="@+id/linebar"
+        app:layout_constraintStart_toStartOf="@+id/linebar"
+        app:errorEnabled="true"
+        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="text" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/connect_button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="30dp"
+        android:text="@string/connect"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/ipTextField" />
 
     <TextView
         android:id="@+id/progress_text"
@@ -40,8 +70,8 @@
         android:layout_marginHorizontal="60dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/project_name"
-        app:layout_constraintBottom_toTopOf="@+id/loading_bar" />
+        app:layout_constraintTop_toBottomOf="@+id/connect_button"
+        app:layout_constraintBottom_toTopOf="@+id/loading_text" />
 
     <TextView
         android:id="@+id/loading_text"

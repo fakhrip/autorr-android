@@ -4,17 +4,18 @@ import android.view.View
 import com.google.android.material.snackbar.Snackbar
 import io.socket.client.IO
 import io.socket.client.Socket
-import java.net.URISyntaxException
 
 object SocketHandler {
 
     lateinit var mSocket: Socket
+    var isConnected: Boolean = false
 
     @Synchronized
-    fun setSocket(view: View) {
+    fun setSocket(view: View, url: String) {
         try {
-            mSocket = IO.socket("http://192.168.0.9:7777")
-        } catch (e: URISyntaxException) {
+            mSocket = IO.socket(url)
+            isConnected = false
+        } catch (e: Exception) {
             Snackbar.make(
                 view,
                 "Could not connect to websocket :(",
@@ -24,18 +25,28 @@ object SocketHandler {
     }
 
     @Synchronized
-    fun getSocket(): Socket {
-        return mSocket
+    fun getSocket(): Socket? {
+        if (this::mSocket.isInitialized) {
+            return mSocket
+        }
+
+        return null
     }
 
     @Synchronized
     fun establishConnection() {
-        mSocket.connect()
+        if (this::mSocket.isInitialized) {
+            mSocket.connect()
+            isConnected = true
+        }
     }
 
     @Synchronized
     fun closeConnection() {
-        mSocket.disconnect()
+        if (this::mSocket.isInitialized) {
+            mSocket.disconnect()
+            isConnected = false
+        }
     }
 
     @Synchronized

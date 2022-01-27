@@ -19,4 +19,6 @@
     <string name="send">Send</string>
     <string name="generate">Generate</string>
     <string name="websocket_uid">Websocket UID</string>
+    <string name="connect">Connect</string>
+    <string name="websocket_url">Websocket URL</string>
 </resources>
