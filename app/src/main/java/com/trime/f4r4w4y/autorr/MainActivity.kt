@@ -8,9 +8,11 @@ import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.core.widget.doOnTextChanged
 import androidx.lifecycle.ViewModelProvider
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.google.android.material.snackbar.Snackbar
+import com.google.android.material.textfield.TextInputLayout
 import io.socket.client.Socket
 import java.io.IOException
 
@@ -23,7 +25,10 @@ class MainActivity : AppCompatActivity() {
     private var uidText: TextView? = null
     private var controllerButton: Button? = null
     private var generateButton: Button? = null
+    private var connectButton: Button? = null
     private var loadingBar: LinearProgressIndicator? = null
+    private var ipTextField: TextInputLayout? = null
+
     private var isRunning: Boolean = false
     private var isFinished: Boolean = false
     private var mSocket: Socket? = null
@@ -62,10 +67,6 @@ class MainActivity : AppCompatActivity() {
             ).show()
         }
 
-        SocketHandler.setSocket(findViewById(android.R.id.content))
-        SocketHandler.establishConnection()
-        mSocket = SocketHandler.getSocket()
-
         controllerButton?.setOnClickListener {
             if (!isOnline()) {
                 Snackbar.make(
@@ -82,6 +83,15 @@ class MainActivity : AppCompatActivity() {
         }
 
         generateButton?.setOnClickListener {
+            if (!SocketHandler.isConnected) {
+                Snackbar.make(
+                    findViewById(android.R.id.content),
+                    "Connect to websocket first !",
+                    Snackbar.LENGTH_LONG
+                ).show()
+                return@setOnClickListener
+            }
+
             val prevUID = socketUID
             socketUID = getRandomString()
             uidText?.text = socketUID
@@ -91,6 +101,20 @@ class MainActivity : AppCompatActivity() {
             } else {
                 SocketHandler.enterRoom(socketUID)
             }
+        }
+
+        connectButton?.setOnClickListener {
+            if (ipTextField?.editText?.text.toString() == "") {
+                ipTextField?.error = "You need to fill in the ip address first"
+                return@setOnClickListener
+            }
+
+            SocketHandler.setSocket(
+                findViewById(android.R.id.content),
+                ipTextField?.editText?.text.toString()
+            )
+            SocketHandler.establishConnection()
+            mSocket = SocketHandler.getSocket()
         }
     }
 
@@ -118,10 +142,16 @@ class MainActivity : AppCompatActivity() {
     private fun setupUI() {
         controllerButton = findViewById(R.id.controller_button)
         generateButton = findViewById(R.id.generate_button)
+        connectButton = findViewById(R.id.connect_button)
         progressText = findViewById(R.id.progress_text)
         loadingBar = findViewById(R.id.loading_bar)
         loadingText = findViewById(R.id.loading_text)
         uidText = findViewById(R.id.uid_text)
+        ipTextField = findViewById(R.id.ipTextField)
+
+        ipTextField?.editText?.doOnTextChanged { _, _, _, _ ->
+            ipTextField?.error = ""
+        }
 
         resetUI()
     }
