@@ -31,46 +31,17 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@id/project_name" />
 
-    <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/ipTextField"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:hint="@string/websocket_url"
-        app:placeholderText="http://192.168.0.9:7777"
-        app:layout_constraintTop_toBottomOf="@+id/linebar"
-        app:layout_constraintEnd_toEndOf="@+id/linebar"
-        app:layout_constraintStart_toStartOf="@+id/linebar"
-        app:errorEnabled="true"
-        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
-
-        <com.google.android.material.textfield.TextInputEditText
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:inputType="text" />
-
-    </com.google.android.material.textfield.TextInputLayout>
-
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/connect_button"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginHorizontal="30dp"
-        android:text="@string/connect"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/ipTextField" />
-
     <TextView
         android:id="@+id/progress_text"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:textSize="18sp"
         android:textAlignment="center"
-        android:text="@string/placeholder_text"
+        android:text="@string/placeholderRR_text"
         android:layout_marginHorizontal="60dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/connect_button"
+        app:layout_constraintTop_toBottomOf="@+id/linebar"
         app:layout_constraintBottom_toTopOf="@+id/loading_text" />
 
     <TextView
@@ -103,32 +74,20 @@
         android:id="@+id/controller_button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="30dp"
+        android:layout_marginBottom="5dp"
         android:layout_marginHorizontal="30dp"
         android:text="@string/start"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toTopOf="@+id/uid_text" />
-
-    <TextView
-        android:id="@+id/uid_text"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="5dp"
-        android:text="@string/websocket_uid"
-        android:textAlignment="center"
-        android:textSize="15sp"
-        app:layout_constraintStart_toStartOf="@id/generate_button"
-        app:layout_constraintEnd_toEndOf="@id/generate_button"
-        app:layout_constraintBottom_toTopOf="@id/generate_button" />
+        app:layout_constraintBottom_toTopOf="@+id/change_button" />
 
     <com.google.android.material.button.MaterialButton
-        android:id="@+id/generate_button"
+        android:id="@+id/change_button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="30dp"
         android:layout_marginHorizontal="30dp"
-        android:text="@string/generate"
+        android:text="@string/change"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toBottomOf="parent" />
