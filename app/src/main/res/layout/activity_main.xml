@@ -21,6 +21,7 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <View
+        android:id="@+id/linebar"
         android:layout_width="0dp"
         android:layout_height="2dp"
         android:background="?colorSecondaryVariant"
@@ -36,12 +37,12 @@
         android:layout_height="wrap_content"
         android:textSize="18sp"
         android:textAlignment="center"
-        android:text="@string/placeholder_text"
+        android:text="@string/placeholderRR_text"
         android:layout_marginHorizontal="60dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/project_name"
-        app:layout_constraintBottom_toTopOf="@+id/loading_bar" />
+        app:layout_constraintTop_toBottomOf="@+id/linebar"
+        app:layout_constraintBottom_toTopOf="@+id/loading_text" />
 
     <TextView
         android:id="@+id/loading_text"
@@ -73,9 +74,20 @@
         android:id="@+id/controller_button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="30dp"
+        android:layout_marginBottom="5dp"
         android:layout_marginHorizontal="30dp"
         android:text="@string/start"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/change_button" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/change_button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="30dp"
+        android:layout_marginHorizontal="30dp"
+        android:text="@string/change"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toBottomOf="parent" />

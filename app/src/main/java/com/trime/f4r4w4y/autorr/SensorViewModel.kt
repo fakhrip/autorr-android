@@ -3,6 +3,7 @@ package com.trime.f4r4w4y.autorr
 import android.annotation.SuppressLint
 import android.app.Application
 import android.content.Context
+import android.graphics.Typeface
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -11,6 +12,9 @@ import android.media.AudioManager
 import android.media.ToneGenerator
 import android.os.Handler
 import android.os.Looper
+import android.text.SpannableStringBuilder
+import android.text.style.StyleSpan
+import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.TextView
@@ -34,11 +38,16 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
     private var accValue = FloatArray(3) { 0F }
     private var gyrValue = FloatArray(3) { 0F }
 
+    private var calculationType = "respiration_rate"
+
     companion object {
-        private const val dataSize: Int = 6000 // takes 1 minute to acquired
+        private const val dataSizeRR: Int = 6000 // takes 1 minute to acquired
+        private const val dataSizeHR: Int = 7500 // takes 1 minute to acquired
     }
 
-    private fun registerSensors() {
+    private fun registerSensors(calculationType: String) {
+        this.calculationType = calculationType
+
         sensorManager =
             getApplication<Application>().getSystemService(Context.SENSOR_SERVICE) as SensorManager
 
@@ -88,15 +97,15 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
         progressText: TextView?,
         loadingText: TextView?,
         controllerButton: Button?,
-        finishCallback: (csvVal: String, result: String) -> Unit
+        finishCallback: (result: String) -> Unit
     ) {
         fUtil = FileUtil(getApplication<Application>().applicationContext)
         job = viewModelScope.launch {
-            registerSensors()
+            registerSensors(if (funcName == "startCalculationRR") "respiration_rate" else "heart_rate")
 
             // Get sensor data for 1 minute
             val sensorData = getSensorData(
-                dataSize,
+                if (funcName == "startCalculationRR") dataSizeRR else dataSizeHR,
                 loadingBar,
                 progressText,
                 loadingText,
@@ -106,13 +115,10 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
             // Unregister sensor to not waste any batteries
             unregisterSensors()
 
-            // Convert sensor data to csv
-            val csvString = dataToCSV(sensorData)
-
             // Calculate respiration rate from acquired data and return the result
             val result: NativeArray? = calculateData(jsCode, funcName, libs, sensorData)
             result?.joinToString(",\n")
-                ?.let { finishCallback(csvString, it) }
+                ?.let { finishCallback(it) }
         }
     }
 
@@ -122,24 +128,6 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
             unregisterSensors()
         }
     }
-
-    private suspend fun dataToCSV(sensorData: Array<FloatArray>): String =
-        withContext(Dispatchers.Default) {
-            var csvString = "time,accx,accy,accz,gyrx,gyry,gyrz\n"
-            for (i in 0 until dataSize) {
-                val timeArr = sensorData[0][i]
-                val accX = sensorData[1][i]
-                val accY = sensorData[2][i]
-                val accZ = sensorData[3][i]
-                val gyrX = sensorData[4][i]
-                val gyrY = sensorData[5][i]
-                val gyrZ = sensorData[6][i]
-                csvString += "$timeArr,$accX,$accY,$accZ,$gyrX,$gyrY,$gyrZ\n"
-            }
-
-            return@withContext csvString
-        }
-
 
     @Suppress("UNCHECKED_CAST")
     private suspend fun <T> calculateData(
@@ -162,18 +150,50 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
         rhinoInterpreter.evalScript(jsCode, "javascriptEvaluation")
 
         // Run the corresponding function
-        val result: Any? = rhinoInterpreter.callJsFunction(
-            funcName,
-            timeArr,
-            accX,
-            accY,
-            accZ,
-            gyrX,
-            gyrY,
-            gyrZ
-        )
+        val result: Any?
+        if (calculationType == "respiration_rate")
+            result = rhinoInterpreter.callJsFunction(
+                funcName,
+                timeArr,
+                accX,
+                accY,
+                accZ,
+                gyrX,
+                gyrY,
+                gyrZ
+            )
+        else
+            result = rhinoInterpreter.callJsFunction(
+                funcName,
+                timeArr,
+                accX,
+                accY,
+                accZ
+            )
 
         return@withContext result as T
+    }
+
+    private fun makeSectionOfTextBold(text: String, textToBold: String): SpannableStringBuilder? {
+        val builder = SpannableStringBuilder()
+        if (textToBold.isNotEmpty() && textToBold.trim { it <= ' ' } != "") {
+
+            //for counting start/end indexes
+            val testText = text.lowercase()
+            val testTextToBold = textToBold.lowercase()
+            val startingIndex = testText.indexOf(testTextToBold)
+            val endingIndex = startingIndex + testTextToBold.length
+            //for counting start/end indexes
+            if (startingIndex < 0 || endingIndex < 0) {
+                return builder.append(text)
+            } else if (startingIndex >= 0 && endingIndex >= 0) {
+                builder.append(text)
+                builder.setSpan(StyleSpan(Typeface.BOLD), startingIndex, endingIndex, 0)
+            }
+        } else {
+            return builder.append(text)
+        }
+        return builder
     }
 
     @SuppressLint("SetTextI18n")
@@ -185,8 +205,13 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
         controllerButton: Button?
     ): Array<FloatArray> {
         delay(1000) // Weirdly needed, to let the sensor register itself first
+        val firstVal = if (dataSize == dataSizeRR) "0.01" else "0.008"
+        val formatter = if (dataSize == dataSizeRR) "%.2f" else "%.3f"
+        val delaySize: Long = if (dataSize == dataSizeRR) 1 else 6
+
         var time = 0L
-        var lastSeconds = String.format("%.2f", -1F).toFloat()
+        var lastSeconds = String.format(formatter, -1F).toFloat()
+        var seconds: Float
 
         var timeArr: FloatArray = floatArrayOf()
         var accX: FloatArray = floatArrayOf()
@@ -197,11 +222,11 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
         var gyrZ: FloatArray = floatArrayOf()
 
         while (timeArr.size != dataSize) {
-            delay(1) // Weirdly needed, to let the sensor update the value first
+            delay(delaySize) // Weirdly needed, to let the sensor update the value first
             if (time == 0L) time = System.currentTimeMillis()
 
-            val seconds =
-                String.format("%.2f", (System.currentTimeMillis() - time) / 1000F).toFloat()
+            seconds =
+                String.format(formatter, (System.currentTimeMillis() - time) / 1000F).toFloat()
 
             val progress = ((timeArr.size.toDouble() / dataSize.toDouble()) * 100).roundToInt()
             loadingText?.text = "${progress}/100"
@@ -209,24 +234,18 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
 
             // Dirty trick because apparently it didn't work if you put it
             // in other place without rendering it multiple times ¯\_(ツ)_/¯
-            if (progress > 98)
-                progressText?.text =
-                    getApplication<Application>().applicationContext.getString(R.string.wait2_text)
+            if (progress > 98) {
+                val text = makeSectionOfTextBold(
+                    (if (dataSize == dataSizeRR) getApplication<Application>().applicationContext.getString(
+                        R.string.wait2RR_text
+                    ) else getApplication<Application>().applicationContext.getString(R.string.wait2HR_text)).toString(),
+                    if (dataSize == dataSizeRR) "respiration rate" else "heart rate"
+                )
 
-            // Reset calculation if first two frequencies is not aligned correctly
-            if (timeArr.size > 1 && !"%.2f".format(timeArr[1] - timeArr[0]).contentEquals("0.01")) {
-                time = 0L
-                lastSeconds = String.format("%.2f", -1F).toFloat()
-                timeArr = floatArrayOf()
-                accX = floatArrayOf()
-                accY = floatArrayOf()
-                accZ = floatArrayOf()
-                gyrX = floatArrayOf()
-                gyrY = floatArrayOf()
-                gyrZ = floatArrayOf()
+                progressText?.text = text
             }
 
-            if (!"%.2f".format(lastSeconds).contentEquals("%.2f".format(seconds))) {
+            if (!formatter.format(lastSeconds).contentEquals(formatter.format(seconds))) {
                 lastSeconds = seconds
 
                 timeArr = timeArr.plus(seconds)
@@ -236,6 +255,26 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
                 gyrX = gyrX.plus(gyrValue[0])
                 gyrY = gyrY.plus(gyrValue[1])
                 gyrZ = gyrZ.plus(gyrValue[2])
+
+                Log.d(
+                    "AAA",
+                    "getSensorData: $seconds, ${accValue[0]}, ${accValue[1]}, ${accValue[2]}, ${gyrValue[0]}, ${gyrValue[1]}, ${gyrValue[2]}"
+                )
+            }
+
+            // Reset calculation if first two frequencies is not aligned correctly
+            if (timeArr.size > 1 && !formatter.format(timeArr[1] - timeArr[0])
+                    .contentEquals(firstVal)
+            ) {
+                time = 0L
+                lastSeconds = String.format(formatter, -1F).toFloat()
+                timeArr = floatArrayOf()
+                accX = floatArrayOf()
+                accY = floatArrayOf()
+                accZ = floatArrayOf()
+                gyrX = floatArrayOf()
+                gyrY = floatArrayOf()
+                gyrZ = floatArrayOf()
             }
         }
 
@@ -271,10 +310,16 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
             gravity[1] = alpha * gravity[1] + (1 - alpha) * event.values[1]
             gravity[2] = alpha * gravity[2] + (1 - alpha) * event.values[2]
 
-            // Remove the gravity contribution with the high-pass filter.
-            accValue[0] = event.values[0] - gravity[0]
-            accValue[1] = event.values[1] - gravity[1]
-            accValue[2] = event.values[2] - gravity[2] - gravity[2]
+            if (calculationType == "respiration_rate") {
+                // Remove the gravity contribution with the high-pass filter.
+                accValue[0] = event.values[0] - gravity[0]
+                accValue[1] = event.values[1] - gravity[1]
+                accValue[2] = event.values[2] - gravity[2] - gravity[2]
+            } else {
+                accValue[0] = event.values[0] * gravity[0]
+                accValue[1] = event.values[1] * gravity[1]
+                accValue[2] = event.values[2] * gravity[2] - gravity[2]
+            }
         }
 
     }

@@ -2,32 +2,31 @@ package com.trime.f4r4w4y.autorr
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.graphics.Typeface
 import android.os.Bundle
-import android.view.LayoutInflater
+import android.text.SpannableStringBuilder
+import android.text.style.StyleSpan
 import android.view.WindowManager
 import android.widget.Button
 import android.widget.TextView
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.ViewModelProvider
 import com.google.android.material.progressindicator.LinearProgressIndicator
-import com.google.android.material.snackbar.Snackbar
-import com.google.android.material.textfield.TextInputLayout
-import com.trime.f4r4w4y.autorr.gql.QueryViewModel
-import java.io.IOException
-
 
 class MainActivity : AppCompatActivity() {
     private lateinit var sViewModel: SensorViewModel
-    private lateinit var qViewModel: QueryViewModel
     private lateinit var fUtil: FileUtil
     private var progressText: TextView? = null
     private var loadingText: TextView? = null
     private var controllerButton: Button? = null
+    private var changeButton: Button? = null
     private var loadingBar: LinearProgressIndicator? = null
+
     private var isRunning: Boolean = false
     private var isFinished: Boolean = false
+
+    private var calculationType: String = "respiration_rate"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,14 +44,6 @@ class MainActivity : AppCompatActivity() {
                 return@setOnExitAnimationListener
             }
 
-            // Check for guest (not logged in yet), open LoginActivity if so
-            val isGuest = pref.getString("login_token", "nope")
-            if (isGuest == "nope") {
-                startActivity(Intent(applicationContext, LoginActivity::class.java))
-                finish()
-                return@setOnExitAnimationListener
-            }
-
             it.remove()
         }
 
@@ -60,45 +51,20 @@ class MainActivity : AppCompatActivity() {
 
         setupUI()
         sViewModel = ViewModelProvider(this)[SensorViewModel::class.java]
-        qViewModel = ViewModelProvider(this)[QueryViewModel::class.java]
         fUtil = FileUtil(applicationContext)
 
-        if (!isOnline()) {
-            Snackbar.make(
-                findViewById(android.R.id.content),
-                "No internet connections available :(",
-                Snackbar.LENGTH_LONG
-            ).show()
-        }
-
         controllerButton?.setOnClickListener {
-            if (!isOnline()) {
-                Snackbar.make(
-                    findViewById(android.R.id.content),
-                    "No internet connections available :(",
-                    Snackbar.LENGTH_LONG
-                ).show()
-                return@setOnClickListener
-            }
-
             if (!isRunning) runAcquisitionProcess()
             else if (isFinished) resetUI()
             else resetUI(true)
         }
-    }
 
-    fun isOnline(): Boolean {
-        val runtime = Runtime.getRuntime()
-        try {
-            val ipProcess = runtime.exec("/system/bin/ping -c 1 8.8.8.8")
-            val exitValue = ipProcess.waitFor()
-            return exitValue == 0
-        } catch (e: IOException) {
-            e.printStackTrace()
-        } catch (e: InterruptedException) {
-            e.printStackTrace()
+        changeButton?.setOnClickListener {
+            calculationType =
+                if (calculationType == "respiration_rate") "heart_rate" else "respiration_rate"
+
+            resetUI()
         }
-        return false
     }
 
     private fun setupUI() {
@@ -106,6 +72,7 @@ class MainActivity : AppCompatActivity() {
         progressText = findViewById(R.id.progress_text)
         loadingBar = findViewById(R.id.loading_bar)
         loadingText = findViewById(R.id.loading_text)
+        changeButton = findViewById(R.id.change_button)
 
         resetUI()
     }
@@ -113,22 +80,49 @@ class MainActivity : AppCompatActivity() {
     private fun resetUI(isCancelling: Boolean = false) {
         isRunning = false
         isFinished = false
-        progressText?.setText(R.string.placeholder_text)
+        val text = makeSectionOfTextBold(
+            (if (calculationType == "respiration_rate") getString(R.string.placeholderRR_text) else getString(
+                R.string.placeholderHR_text
+            )).toString(),
+            if (calculationType == "respiration_rate") "respiration rate" else "heart rate"
+        )
+        progressText?.text = text
         controllerButton?.setText(R.string.start)
         loadingBar?.progress = 0
         loadingText?.setText(R.string._0_100)
+        changeButton?.isEnabled = true
 
         if (isCancelling) sViewModel.cancelJob()
+    }
+
+    private fun makeSectionOfTextBold(text: String, textToBold: String): SpannableStringBuilder? {
+        val builder = SpannableStringBuilder()
+        if (textToBold.isNotEmpty() && textToBold.trim { it <= ' ' } != "") {
+
+            //for counting start/end indexes
+            val testText = text.lowercase()
+            val testTextToBold = textToBold.lowercase()
+            val startingIndex = testText.indexOf(testTextToBold)
+            val endingIndex = startingIndex + testTextToBold.length
+            //for counting start/end indexes
+            if (startingIndex < 0 || endingIndex < 0) {
+                return builder.append(text)
+            } else if (startingIndex >= 0 && endingIndex >= 0) {
+                builder.append(text)
+                builder.setSpan(StyleSpan(Typeface.BOLD), startingIndex, endingIndex, 0)
+            }
+        } else {
+            return builder.append(text)
+        }
+        return builder
     }
 
     // Sorry this function name is
     // really misleading XD
     @SuppressLint("SetTextI18n")
-    private fun finishUI(csvVal: String, result: String) {
+    private fun finishUI(result: String) {
         // Its okay to sleep after whole process finished
         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-
-        showMessageBox(csvVal)
 
         isRunning = true
         isFinished = true
@@ -137,62 +131,16 @@ class MainActivity : AppCompatActivity() {
         loadingText?.setText(R.string._100_100)
         controllerButton?.isEnabled = true
         controllerButton?.setText(R.string.finish)
-        progressText?.text = "${getString(R.string.result_text)}\n\n$result"
+        changeButton?.isEnabled = true
+
+        val text = makeSectionOfTextBold(
+            (if (calculationType == "respiration_rate") getString(R.string.resultRR_text) else getString(
+                R.string.resultHR_text
+            )).toString() + "\n\n$result",
+            if (calculationType == "respiration_rate") "respiration rate" else "heart rate"
+        )
+        progressText?.text = text
     }
-
-    private fun showMessageBox(csvVal: String) {
-
-        val messageBoxView =
-            LayoutInflater.from(this@MainActivity).inflate(R.layout.message_box, null)
-        val messageBoxBuilder = AlertDialog.Builder(this@MainActivity).setView(messageBoxView)
-        messageBoxBuilder.setCancelable(false)
-        val messageBoxInstance = messageBoxBuilder.show()
-
-        val inputTextField: TextInputLayout = messageBoxView.findViewById(R.id.inputTextField)
-        val sendButton: Button = messageBoxView.findViewById(R.id.sendButton)
-        val loadingBar: LinearProgressIndicator = messageBoxView.findViewById(R.id.loading_bar)
-
-        sendButton.setOnClickListener {
-            if (inputTextField.editText?.text.toString() == "") {
-                inputTextField.error = "You need to fill in the respiration rate value"
-                return@setOnClickListener
-            }
-
-            if (!isOnline()) {
-                Snackbar.make(
-                    findViewById(android.R.id.content),
-                    "No internet connections available :(",
-                    Snackbar.LENGTH_LONG
-                ).show()
-                return@setOnClickListener
-            }
-
-            if (this::qViewModel.isInitialized) {
-                sendButton.isEnabled = false
-                loadingBar.isIndeterminate = true
-                qViewModel.sendData(csvVal, inputTextField.editText?.text.toString()).observe(
-                    this,
-                    { result ->
-                        if (result != "Unauthorized") {
-                            Snackbar.make(
-                                findViewById(android.R.id.content),
-                                "Success, thanks for your help !",
-                                Snackbar.LENGTH_LONG
-                            ).show()
-                            messageBoxInstance.dismiss()
-                        } else {
-                            Snackbar.make(
-                                findViewById(android.R.id.content),
-                                "Error happened, please contact me (fakhrip@protonmail.com)",
-                                Snackbar.LENGTH_LONG
-                            ).show()
-                            messageBoxInstance.dismiss()
-                        }
-                    })
-            }
-        }
-    }
-
 
     private fun runAcquisitionProcess() {
         // Set screen to always on during acquisition process
@@ -204,16 +152,21 @@ class MainActivity : AppCompatActivity() {
         controllerButton?.setText(R.string.stop)
         loadingBar?.progress = 0
         loadingText?.setText(R.string._0_100)
+        changeButton?.isEnabled = false
 
         val libs: Array<String> =
             arrayOf(
                 fUtil.loadAssetFile("math.js"),
                 fUtil.loadAssetFile("bessel.js"),
-                fUtil.loadAssetFile("numeric.js")
+                fUtil.loadAssetFile("numeric.js"),
+                fUtil.loadAssetFile("octave.js")
             )
+
         sViewModel.getAndEvaluateData(
-            fUtil.loadAssetFile("calculation.js"),
-            "startCalculation",
+            if (calculationType == "respiration_rate") fUtil.loadAssetFile("respiration_rate.js") else fUtil.loadAssetFile(
+                "heart_rate.js"
+            ),
+            if (calculationType == "respiration_rate") "startCalculationRR" else "startCalculationHR",
             libs,
             loadingBar,
             progressText,
