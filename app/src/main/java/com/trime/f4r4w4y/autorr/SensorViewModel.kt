@@ -3,6 +3,7 @@ package com.trime.f4r4w4y.autorr
 import android.annotation.SuppressLint
 import android.app.Application
 import android.content.Context
+import android.graphics.Typeface
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -11,6 +12,8 @@ import android.media.AudioManager
 import android.media.ToneGenerator
 import android.os.Handler
 import android.os.Looper
+import android.text.SpannableStringBuilder
+import android.text.style.StyleSpan
 import android.view.View
 import android.widget.Button
 import android.widget.TextView
@@ -170,6 +173,28 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
         return@withContext result as T
     }
 
+    private fun makeSectionOfTextBold(text: String, textToBold: String): SpannableStringBuilder? {
+        val builder = SpannableStringBuilder()
+        if (textToBold.isNotEmpty() && textToBold.trim { it <= ' ' } != "") {
+
+            //for counting start/end indexes
+            val testText = text.lowercase()
+            val testTextToBold = textToBold.lowercase()
+            val startingIndex = testText.indexOf(testTextToBold)
+            val endingIndex = startingIndex + testTextToBold.length
+            //for counting start/end indexes
+            if (startingIndex < 0 || endingIndex < 0) {
+                return builder.append(text)
+            } else if (startingIndex >= 0 && endingIndex >= 0) {
+                builder.append(text)
+                builder.setSpan(StyleSpan(Typeface.BOLD), startingIndex, endingIndex, 0)
+            }
+        } else {
+            return builder.append(text)
+        }
+        return builder
+    }
+
     @SuppressLint("SetTextI18n")
     private suspend fun getSensorData(
         dataSize: Int,
@@ -208,11 +233,16 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
 
             // Dirty trick because apparently it didn't work if you put it
             // in other place without rendering it multiple times ¯\_(ツ)_/¯
-            if (progress > 98)
-                progressText?.text =
-                    getApplication<Application>().applicationContext.getString(
-                        if (dataSize == dataSizeRR) R.string.wait2RR_text else R.string.wait2HR_text
-                    )
+            if (progress > 98) {
+                val text = makeSectionOfTextBold(
+                    (if (dataSize == dataSizeRR) getApplication<Application>().applicationContext.getString(
+                        R.string.wait2RR_text
+                    ) else getApplication<Application>().applicationContext.getString(R.string.wait2HR_text)).toString(),
+                    if (dataSize == dataSizeRR) "respiration rate" else "heart rate"
+                )
+
+                progressText?.text = text
+            }
 
             if (!formatter.format(lastSeconds).contentEquals(formatter.format(seconds))) {
                 lastSeconds = seconds

@@ -2,7 +2,10 @@ package com.trime.f4r4w4y.autorr
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.graphics.Typeface
 import android.os.Bundle
+import android.text.SpannableStringBuilder
+import android.text.style.StyleSpan
 import android.view.WindowManager
 import android.widget.Button
 import android.widget.TextView
@@ -10,7 +13,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.ViewModelProvider
 import com.google.android.material.progressindicator.LinearProgressIndicator
-
 
 class MainActivity : AppCompatActivity() {
     private lateinit var sViewModel: SensorViewModel
@@ -78,15 +80,41 @@ class MainActivity : AppCompatActivity() {
     private fun resetUI(isCancelling: Boolean = false) {
         isRunning = false
         isFinished = false
-        progressText?.setText(
-            if (calculationType == "respiration_rate") R.string.placeholderRR_text else R.string.placeholderHR_text
+        val text = makeSectionOfTextBold(
+            (if (calculationType == "respiration_rate") getString(R.string.placeholderRR_text) else getString(
+                R.string.placeholderHR_text
+            )).toString(),
+            if (calculationType == "respiration_rate") "respiration rate" else "heart rate"
         )
+        progressText?.text = text
         controllerButton?.setText(R.string.start)
         loadingBar?.progress = 0
         loadingText?.setText(R.string._0_100)
         changeButton?.isEnabled = true
 
         if (isCancelling) sViewModel.cancelJob()
+    }
+
+    private fun makeSectionOfTextBold(text: String, textToBold: String): SpannableStringBuilder? {
+        val builder = SpannableStringBuilder()
+        if (textToBold.isNotEmpty() && textToBold.trim { it <= ' ' } != "") {
+
+            //for counting start/end indexes
+            val testText = text.lowercase()
+            val testTextToBold = textToBold.lowercase()
+            val startingIndex = testText.indexOf(testTextToBold)
+            val endingIndex = startingIndex + testTextToBold.length
+            //for counting start/end indexes
+            if (startingIndex < 0 || endingIndex < 0) {
+                return builder.append(text)
+            } else if (startingIndex >= 0 && endingIndex >= 0) {
+                builder.append(text)
+                builder.setSpan(StyleSpan(Typeface.BOLD), startingIndex, endingIndex, 0)
+            }
+        } else {
+            return builder.append(text)
+        }
+        return builder
     }
 
     // Sorry this function name is
@@ -105,8 +133,11 @@ class MainActivity : AppCompatActivity() {
         controllerButton?.setText(R.string.finish)
         changeButton?.isEnabled = true
         progressText?.text = "${
-            if (calculationType == "respiration_rate") getString(R.string.resultRR_text) else getString(
-                R.string.resultHR_text
+            makeSectionOfTextBold(
+                (if (calculationType == "respiration_rate") getString(R.string.resultRR_text) else getString(
+                    R.string.resultHR_text
+                )).toString(),
+                if (calculationType == "respiration_rate") "respiration rate" else "heart rate"
             )
         }\n\n$result"
     }
