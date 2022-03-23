@@ -14,6 +14,7 @@ import android.os.Handler
 import android.os.Looper
 import android.text.SpannableStringBuilder
 import android.text.style.StyleSpan
+import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.TextView
@@ -206,7 +207,7 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
         delay(1000) // Weirdly needed, to let the sensor register itself first
         val firstVal = if (dataSize == dataSizeRR) "0.01" else "0.008"
         val formatter = if (dataSize == dataSizeRR) "%.2f" else "%.3f"
-        val delaySize: Long = if (dataSize == dataSizeRR) 1 else 5
+        val delaySize: Long = if (dataSize == dataSizeRR) 1 else 6
 
         var time = 0L
         var lastSeconds = String.format(formatter, -1F).toFloat()
@@ -254,6 +255,11 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
                 gyrX = gyrX.plus(gyrValue[0])
                 gyrY = gyrY.plus(gyrValue[1])
                 gyrZ = gyrZ.plus(gyrValue[2])
+
+                Log.d(
+                    "AAA",
+                    "getSensorData: $seconds, ${accValue[0]}, ${accValue[1]}, ${accValue[2]}, ${gyrValue[0]}, ${gyrValue[1]}, ${gyrValue[2]}"
+                )
             }
 
             // Reset calculation if first two frequencies is not aligned correctly

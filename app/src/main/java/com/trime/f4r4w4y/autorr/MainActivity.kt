@@ -132,14 +132,14 @@ class MainActivity : AppCompatActivity() {
         controllerButton?.isEnabled = true
         controllerButton?.setText(R.string.finish)
         changeButton?.isEnabled = true
-        progressText?.text = "${
-            makeSectionOfTextBold(
-                (if (calculationType == "respiration_rate") getString(R.string.resultRR_text) else getString(
-                    R.string.resultHR_text
-                )).toString(),
-                if (calculationType == "respiration_rate") "respiration rate" else "heart rate"
-            )
-        }\n\n$result"
+
+        val text = makeSectionOfTextBold(
+            (if (calculationType == "respiration_rate") getString(R.string.resultRR_text) else getString(
+                R.string.resultHR_text
+            )).toString() + "\n\n$result",
+            if (calculationType == "respiration_rate") "respiration rate" else "heart rate"
+        )
+        progressText?.text = text
     }
 
     private fun runAcquisitionProcess() {
