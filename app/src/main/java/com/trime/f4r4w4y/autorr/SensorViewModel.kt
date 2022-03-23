@@ -18,9 +18,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.google.android.material.snackbar.Snackbar
-import io.socket.client.Socket
 import kotlinx.coroutines.*
-import org.json.JSONObject
 import org.mozilla.javascript.NativeArray
 import kotlin.math.roundToInt
 
@@ -36,11 +34,16 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
     private var accValue = FloatArray(3) { 0F }
     private var gyrValue = FloatArray(3) { 0F }
 
+    private var calculationType = "respiration_rate"
+
     companion object {
-        private const val dataSize: Int = 6000 // takes 1 minute to acquired
+        private const val dataSizeRR: Int = 6000 // takes 1 minute to acquired
+        private const val dataSizeHR: Int = 7500 // takes 1 minute to acquired
     }
 
-    private fun registerSensors() {
+    private fun registerSensors(calculationType: String) {
+        this.calculationType = calculationType
+
         sensorManager =
             getApplication<Application>().getSystemService(Context.SENSOR_SERVICE) as SensorManager
 
@@ -90,23 +93,19 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
         progressText: TextView?,
         loadingText: TextView?,
         controllerButton: Button?,
-        socket: Socket?,
-        socketUID: String,
         finishCallback: (result: String) -> Unit
     ) {
         fUtil = FileUtil(getApplication<Application>().applicationContext)
         job = viewModelScope.launch {
-            registerSensors()
+            registerSensors(if (funcName == "startCalculationRR") "respiration_rate" else "heart_rate")
 
             // Get sensor data for 1 minute
             val sensorData = getSensorData(
-                dataSize,
+                if (funcName == "startCalculationRR") dataSizeRR else dataSizeHR,
                 loadingBar,
                 progressText,
                 loadingText,
-                controllerButton,
-                socket,
-                socketUID
+                controllerButton
             )
 
             // Unregister sensor to not waste any batteries
@@ -167,9 +166,7 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
         loadingBar: LinearProgressIndicator?,
         progressText: TextView?,
         loadingText: TextView?,
-        controllerButton: Button?,
-        socket: Socket?,
-        socketUID: String
+        controllerButton: Button?
     ): Array<FloatArray> {
         delay(1000) // Weirdly needed, to let the sensor register itself first
         var time = 0L
@@ -183,12 +180,13 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
         var gyrY: FloatArray = floatArrayOf()
         var gyrZ: FloatArray = floatArrayOf()
 
+        val firstVal = if (dataSize == dataSizeRR) "0.01" else "0.008"
         while (timeArr.size != dataSize) {
             delay(1) // Weirdly needed, to let the sensor update the value first
             if (time == 0L) time = System.currentTimeMillis()
 
             val seconds =
-                String.format("%.2f", (System.currentTimeMillis() - time) / 1000F).toFloat()
+                String.format("%.3f", (System.currentTimeMillis() - time) / 1000F).toFloat()
 
             val progress = ((timeArr.size.toDouble() / dataSize.toDouble()) * 100).roundToInt()
             loadingText?.text = "${progress}/100"
@@ -198,12 +196,16 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
             // in other place without rendering it multiple times ¯\_(ツ)_/¯
             if (progress > 98)
                 progressText?.text =
-                    getApplication<Application>().applicationContext.getString(R.string.wait2_text)
+                    getApplication<Application>().applicationContext.getString(
+                        if (dataSize == dataSizeRR) R.string.wait2RR_text else R.string.wait2HR_text
+                    )
 
             // Reset calculation if first two frequencies is not aligned correctly
-            if (timeArr.size > 1 && !"%.2f".format(timeArr[1] - timeArr[0]).contentEquals("0.01")) {
+            if (timeArr.size > 1 && !"%.3f".format(timeArr[1] - timeArr[0])
+                    .contentEquals(firstVal)
+            ) {
                 time = 0L
-                lastSeconds = String.format("%.2f", -1F).toFloat()
+                lastSeconds = String.format("%.3f", -1F).toFloat()
                 timeArr = floatArrayOf()
                 accX = floatArrayOf()
                 accY = floatArrayOf()
@@ -213,7 +215,7 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
                 gyrZ = floatArrayOf()
             }
 
-            if (!"%.2f".format(lastSeconds).contentEquals("%.2f".format(seconds))) {
+            if (!"%.3f".format(lastSeconds).contentEquals("%.3f".format(seconds))) {
                 lastSeconds = seconds
 
                 timeArr = timeArr.plus(seconds)
@@ -258,10 +260,16 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
             gravity[1] = alpha * gravity[1] + (1 - alpha) * event.values[1]
             gravity[2] = alpha * gravity[2] + (1 - alpha) * event.values[2]
 
-            // Remove the gravity contribution with the high-pass filter.
-            accValue[0] = event.values[0] - gravity[0]
-            accValue[1] = event.values[1] - gravity[1]
-            accValue[2] = event.values[2] - gravity[2] - gravity[2]
+            if (calculationType == "respiration_rate") {
+                // Remove the gravity contribution with the high-pass filter.
+                accValue[0] = event.values[0] - gravity[0]
+                accValue[1] = event.values[1] - gravity[1]
+                accValue[2] = event.values[2] - gravity[2] - gravity[2]
+            } else {
+                accValue[0] = event.values[0] * gravity[0]
+                accValue[1] = event.values[1] * gravity[1]
+                accValue[2] = event.values[2] * gravity[2] - gravity[2]
+            }
         }
 
     }
