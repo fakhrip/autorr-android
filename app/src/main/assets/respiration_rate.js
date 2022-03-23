@@ -1,18 +1,22 @@
 function startCalculationRR(time, ax, ay, az, gx_rad, gy_rad, gz_rad) {
+  ax = ax.slice(0, ax.length);
+  ay = ay.slice(0, ay.length);
+  az = az.slice(0, az.length);
+
   // Baseline removal (DC Component removal)
-  ax = evalForEach(ax, "-", math.sum(ax) / ax.length);
-  ay = evalForEach(ay, "-", math.sum(ay) / ay.length);
-  az = evalForEach(az, "-", math.sum(az) / az.length);
+  ax = octavejs.evalForEach(ax, "-", math.sum(ax) / ax.length);
+  ay = octavejs.evalForEach(ay, "-", math.sum(ay) / ay.length);
+  az = octavejs.evalForEach(az, "-", math.sum(az) / az.length);
 
   var dt = time[1] - time[0];
   var fs = 1 / dt;
 
-  [b, a] = butter(1, [0.1 / fs, 0.8 / fs], "bandpass", 2);
+  [b, a] = octavejs.butter(1, [0.1 / fs, 0.8 / fs], "bandpass", 2);
 
   // BPF on each accelerometer axis
-  var axBPF = filtfilt(b, a, ax);
-  var ayBPF = filtfilt(b, a, ay);
-  var azBPF = filtfilt(b, a, az);
+  var axBPF = octavejs.filtfilt(b, a, ax);
+  var ayBPF = octavejs.filtfilt(b, a, ay);
+  var azBPF = octavejs.filtfilt(b, a, az);
 
   // ===
   // BPF Based Complementary
@@ -49,8 +53,8 @@ function startCalculationRR(time, ax, ay, az, gx_rad, gy_rad, gz_rad) {
   // Complimentary Filter from Euler angle
   const ALPHA = 0.2;
 
-  var phi_hat_complimentary = zeros([1, time.length]);
-  var theta_hat_complimentary = zeros([1, time.length]);
+  var phi_hat_complimentary = octavejs.zeros([1, time.length]);
+  var theta_hat_complimentary = octavejs.zeros([1, time.length]);
 
   for (let i = 1; i < time.length; i++) {
     var p = gx_rad[i];
@@ -83,16 +87,16 @@ function startCalculationRR(time, ax, ay, az, gx_rad, gy_rad, gz_rad) {
   // Remove signal drift of angular value
   const CUTOFF = 0.5;
 
-  [b, a] = butter(1, CUTOFF / fs, "high", 2);
-  var theta_hat_complimentary = filtfilt(b, a, theta_hat_complimentary[0]);
-  var phi_hat_complimentary = filtfilt(b, a, phi_hat_complimentary[0]);
+  [b, a] = octavejs.butter(1, CUTOFF / fs, "high", 2);
+  var theta_hat_complimentary = octavejs.filtfilt(b, a, theta_hat_complimentary[0]);
+  var phi_hat_complimentary = octavejs.filtfilt(b, a, phi_hat_complimentary[0]);
 
   // ---------
   // STAGE [4]
   // ---------
   // Determining which signal will be used for remaining calculation
-  snr_phi = snr(phi_hat_complimentary, fs);
-  snr_theta = snr(theta_hat_complimentary, fs);
+  snr_phi = octavejs.snr(phi_hat_complimentary, fs);
+  snr_theta = octavejs.snr(theta_hat_complimentary, fs);
 
   if (snr_theta >= snr_phi) {
     fusion = theta_hat_complimentary;
@@ -102,25 +106,25 @@ function startCalculationRR(time, ax, ay, az, gx_rad, gy_rad, gz_rad) {
     angle = "roll";
   }
 
-  [b, a] = butter(1, [0.2 / fs, 0.8 / fs], "bandpass", 2);
+  [b, a] = octavejs.butter(1, [0.2 / fs, 0.8 / fs], "bandpass", 2);
 
   var totalPeaks = [];
-  var out = filtfilt(b, a, fusion);
+  var out = octavejs.filtfilt(b, a, fusion);
   var windowWidth = 75; // amount of data inside each window.
   var thres = 0.3 * math.max(out); // 30% of max threshold
   var peakdist = 2.75; // between 3 - 4 second
 
-  var kernel = ones([windowWidth, 1]);
+  var kernel = octavejs.ones([windowWidth, 1]);
   for (let x = 0; x < kernel.length; x++) {
     kernel[x] = kernel[x][0] / windowWidth;
   }
-  var out = filter(kernel, [[1]], out)[0];
+  var out = octavejs.filter(kernel, [[1]], out)[0];
 
   // --------
   // STAGE [5]
   // ---------
   // Peak detection with "DoubleSided" default to on
-  [_, locs] = findpeaks(out, thres, peakdist);
+  [_, locs] = octavejs.findpeaks(out, thres, peakdist);
 
   // Get only positive peaks to match matlab findpeaks mechanism
   var pos_peaks = [];
