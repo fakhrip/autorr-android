@@ -1,4 +1,8 @@
 function startCalculationHR(time, ax, ay, az) {
+  ax = ax.slice(0, ax.length);
+  ay = ay.slice(0, ay.length);
+  az = az.slice(0, az.length);
+
   var mag = math.add(math.square(ax), math.square(ay), math.square(az));
   mag = math.sqrt(mag);
 
@@ -13,38 +17,35 @@ function startCalculationHR(time, ax, ay, az) {
 
   // Baseline Wander Removal (BWR)
   // High Pass filter to remove DC Component on RAW Acc Z
-  [b, a] = butter(1, 4 / fs, "high", 2);
-  var zHPF = filtfilt(b, a, az);
+  [b, a] = octavejs.butter(1, 4 / fs, "high", 2);
+  var zHPF = octavejs.filtfilt(b, a, az);
 
   // Using BPF on Z axis after BWR
-  [b, a] = butter(1, [10 / fs, 30 / fs], "bandpass", 2);
-  var zBPF = filtfilt(b, a, zHPF);
+  [b, a] = octavejs.butter(1, [10 / fs, 30 / fs], "bandpass", 2);
+  var zBPF = octavejs.filtfilt(b, a, zHPF);
 
   // Pre Processing
   // Taking positive envelope on Z-axis BPF using Hilbert Function
-  var zHFS = hilbert(zBPF);
+  var zHFS = octavejs.hilbert(zBPF);
   var posEnvelope = math.abs(zHFS);
 
   // LPF on Postive Envelope Signal
-  [b, a] = butter(1, 10 / fs, "low", 2);
-  var zLPF = filtfilt(b, a, posEnvelope);
+  [b, a] = octavejs.butter(1, 10 / fs, "low", 2);
+  var zLPF = octavejs.filtfilt(b, a, posEnvelope);
 
   // Moving average filter on LPF Envelope
   var totalPeaks = [];
   var windowWidth = 10;
 
-  var kernel = ones([windowWidth, 1]);
+  var kernel = octavejs.ones([windowWidth, 1]);
   for (let x = 0; x < kernel.length; x++) {
     kernel[x] = kernel[x][0] / windowWidth;
   }
-  var zOut = filter(kernel, [[1]], zLPF)[0];
+  var zOut = octavejs.filter(kernel, [[1]], zLPF)[0];
   var thres = math.max(zOut) / 6;
 
   // Peak detection with "DoubleSided" default to on
-  [_, locs] = findpeaks(zOut, thres, 0.4);
+  [_, locs] = octavejs.findpeaks(zOut, thres, 0.4);
   totalPeaks.push(locs.length);
-
-  for (let i = 0; i < totalPeaks.length; i++) {
-    print("Estimated Beat Rate : " + totalPeaks[i]);
-  }
+  return totalPeaks;
 }
