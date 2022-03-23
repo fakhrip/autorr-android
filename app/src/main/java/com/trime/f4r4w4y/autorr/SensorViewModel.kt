@@ -146,16 +146,26 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
         rhinoInterpreter.evalScript(jsCode, "javascriptEvaluation")
 
         // Run the corresponding function
-        val result: Any? = rhinoInterpreter.callJsFunction(
-            funcName,
-            timeArr,
-            accX,
-            accY,
-            accZ,
-            gyrX,
-            gyrY,
-            gyrZ
-        )
+        val result: Any?
+        if (calculationType == "respiration_rate")
+            result = rhinoInterpreter.callJsFunction(
+                funcName,
+                timeArr,
+                accX,
+                accY,
+                accZ,
+                gyrX,
+                gyrY,
+                gyrZ
+            )
+        else
+            result = rhinoInterpreter.callJsFunction(
+                funcName,
+                timeArr,
+                accX,
+                accY,
+                accZ
+            )
 
         return@withContext result as T
     }
@@ -169,8 +179,13 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
         controllerButton: Button?
     ): Array<FloatArray> {
         delay(1000) // Weirdly needed, to let the sensor register itself first
+        val firstVal = if (dataSize == dataSizeRR) "0.01" else "0.008"
+        val formatter = if (dataSize == dataSizeRR) "%.2f" else "%.3f"
+        val delaySize: Long = if (dataSize == dataSizeRR) 1 else 5
+
         var time = 0L
-        var lastSeconds = String.format("%.2f", -1F).toFloat()
+        var lastSeconds = String.format(formatter, -1F).toFloat()
+        var seconds: Float
 
         var timeArr: FloatArray = floatArrayOf()
         var accX: FloatArray = floatArrayOf()
@@ -180,13 +195,12 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
         var gyrY: FloatArray = floatArrayOf()
         var gyrZ: FloatArray = floatArrayOf()
 
-        val firstVal = if (dataSize == dataSizeRR) "0.01" else "0.008"
         while (timeArr.size != dataSize) {
-            delay(1) // Weirdly needed, to let the sensor update the value first
+            delay(delaySize) // Weirdly needed, to let the sensor update the value first
             if (time == 0L) time = System.currentTimeMillis()
 
-            val seconds =
-                String.format("%.3f", (System.currentTimeMillis() - time) / 1000F).toFloat()
+            seconds =
+                String.format(formatter, (System.currentTimeMillis() - time) / 1000F).toFloat()
 
             val progress = ((timeArr.size.toDouble() / dataSize.toDouble()) * 100).roundToInt()
             loadingText?.text = "${progress}/100"
@@ -200,22 +214,7 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
                         if (dataSize == dataSizeRR) R.string.wait2RR_text else R.string.wait2HR_text
                     )
 
-            // Reset calculation if first two frequencies is not aligned correctly
-            if (timeArr.size > 1 && !"%.3f".format(timeArr[1] - timeArr[0])
-                    .contentEquals(firstVal)
-            ) {
-                time = 0L
-                lastSeconds = String.format("%.3f", -1F).toFloat()
-                timeArr = floatArrayOf()
-                accX = floatArrayOf()
-                accY = floatArrayOf()
-                accZ = floatArrayOf()
-                gyrX = floatArrayOf()
-                gyrY = floatArrayOf()
-                gyrZ = floatArrayOf()
-            }
-
-            if (!"%.3f".format(lastSeconds).contentEquals("%.3f".format(seconds))) {
+            if (!formatter.format(lastSeconds).contentEquals(formatter.format(seconds))) {
                 lastSeconds = seconds
 
                 timeArr = timeArr.plus(seconds)
@@ -225,6 +224,21 @@ class SensorViewModel(application: Application) : AndroidViewModel(application),
                 gyrX = gyrX.plus(gyrValue[0])
                 gyrY = gyrY.plus(gyrValue[1])
                 gyrZ = gyrZ.plus(gyrValue[2])
+            }
+
+            // Reset calculation if first two frequencies is not aligned correctly
+            if (timeArr.size > 1 && !formatter.format(timeArr[1] - timeArr[0])
+                    .contentEquals(firstVal)
+            ) {
+                time = 0L
+                lastSeconds = String.format(formatter, -1F).toFloat()
+                timeArr = floatArrayOf()
+                accX = floatArrayOf()
+                accY = floatArrayOf()
+                accZ = floatArrayOf()
+                gyrX = floatArrayOf()
+                gyrY = floatArrayOf()
+                gyrZ = floatArrayOf()
             }
         }
 

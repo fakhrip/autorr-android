@@ -84,6 +84,7 @@ class MainActivity : AppCompatActivity() {
         controllerButton?.setText(R.string.start)
         loadingBar?.progress = 0
         loadingText?.setText(R.string._0_100)
+        changeButton?.isEnabled = true
 
         if (isCancelling) sViewModel.cancelJob()
     }
